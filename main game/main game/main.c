@@ -44,10 +44,10 @@ int game_Start() {
 
     system("cls");
     Move_Cursor(60, 15);
-    printf("Once upon a time....\n");
+    printf("새로 이 마을에 이사오게 된 당신\n");
     //Sleep(4000);
     Move_Cursor(60, 16);
-    printf("Someone has appeared who was called 케인");
+    printf("당신은 이곳에서 새로운 사업을 하려 한다");
     Move_Cursor(60, 17);
     printf("enter");
 
@@ -103,8 +103,8 @@ int loading() {
 
     // 파일 열기
     fp = fopen("logo.txt", "r");
-    mciSendString(TEXT("open \"nerujimaseyo.mp3\" type mpegvideo alias logo"), NULL, 0, NULL);
-    mciSendString(TEXT("open \"voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
+    mciSendString(TEXT("open \"mp3s/nerujimaseyo.mp3\" type mpegvideo alias logo"), NULL, 0, NULL);
+    mciSendString(TEXT("open \"mp3s/voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
 
 
     // 파일 끝까지 한 줄씩 읽어서 출력
