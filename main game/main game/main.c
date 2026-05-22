@@ -41,14 +41,23 @@ int game_Start() {
     Sleep(2000);
     mciSendString(TEXT("close myBgm"), NULL, 0, NULL);
     int statues01 = "";
-
     system("cls");
-    Move_Cursor(60, 15);
+
+    Move_Cursor(0, 0);
+    FILE* intro1;
+    char line[1024]; // 한 줄을 저장할 버퍼 (길이에 따라 조절 가능)
+    intro1 = fopen("txts/intro 1.txt", "r");
+    while (fgets(line, sizeof(line), intro1) != NULL) {
+        printf("%s", line);
+    }
+
+
+    Move_Cursor(60, 50);
     printf("새로 이 마을에 이사오게 된 당신\n");
     //Sleep(4000);
-    Move_Cursor(60, 16);
+    Move_Cursor(60, 51);
     printf("당신은 이곳에서 새로운 사업을 하려 한다");
-    Move_Cursor(60, 17);
+    Move_Cursor(60, 52);
     printf("enter");
 
     while (statues01 != 27) {
