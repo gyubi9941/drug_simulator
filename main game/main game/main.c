@@ -41,23 +41,14 @@ int game_Start() {
     Sleep(2000);
     mciSendString(TEXT("close myBgm"), NULL, 0, NULL);
     int statues01 = "";
+
     system("cls");
-
-    Move_Cursor(0, 0);
-    FILE* intro1;
-    char line[1024]; // 한 줄을 저장할 버퍼 (길이에 따라 조절 가능)
-    intro1 = fopen("txts/intro 1.txt", "r");
-    while (fgets(line, sizeof(line), intro1) != NULL) {
-        printf("%s", line);
-    }
-
-
-    Move_Cursor(60, 50);
-    printf("새로 이 마을에 이사오게 된 당신\n");
+    Move_Cursor(60, 25);
+    printf("대학생활에 지쳐 집에 돌아온 당신\n");
     //Sleep(4000);
-    Move_Cursor(60, 51);
-    printf("당신은 이곳에서 새로운 사업을 하려 한다");
-    Move_Cursor(60, 52);
+    Move_Cursor(60, 26);
+    printf("Someone has appeared who was called 케인");
+    Move_Cursor(60, 27);
     printf("enter");
 
     while (statues01 != 27) {
@@ -107,24 +98,24 @@ int loading() {
 
     system("cls");
 
-    FILE* fp;
+    FILE* logo;
     char line[1024]; // 한 줄을 저장할 버퍼 (길이에 따라 조절 가능)
 
     // 파일 열기
-    fp = fopen("logo.txt", "r");
+    logo = fopen("logo.txt", "r");
     mciSendString(TEXT("open \"mp3s/nerujimaseyo.mp3\" type mpegvideo alias logo"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
 
 
     // 파일 끝까지 한 줄씩 읽어서 출력
-    while (fgets(line, sizeof(line), fp) != NULL) {
+    while (fgets(line, sizeof(line), logo) != NULL) {
         printf("%s", line);
     }
 
     mciSendString(TEXT("play logo repeat"), NULL, 0, NULL);
     mciSendString(TEXT("play logo wait"), NULL, 0, NULL);
     // 파일 닫기
-    fclose(fp);
+    fclose(logo);
     // 1. 배경음악
     mciSendString(TEXT("setaudio myBgm volume to 100"), NULL, 0, NULL);
     mciSendString(TEXT("play myBgm repeat"), NULL, 0, NULL);
@@ -138,58 +129,142 @@ int loading() {
 int render_Title() {
     int posY = 25;
     int color_num = 1;
+    int garo;
+    int sero;
+    int select = 1;
+
     char input = "";
+    CONSOLE_SCREEN_BUFFER_INFO gasebi;
+    HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
+    GetConsoleScreenBufferInfo(GetStdHandle(STD_OUTPUT_HANDLE), &gasebi);
+    garo = gasebi.srWindow.Right - gasebi.srWindow.Left;
+    sero = gasebi.srWindow.Bottom - gasebi.srWindow.Top;
+
 
     Sleep(1000);
+    //Move_Cursor(garo / 2, sero / 2 - 4);
+    //printf("로딩중입니다람쥐");
 
 
- 
     while (input != 27) {
+
+
 
         system("cls");
         //printf(color_num);
-        Move_Cursor(135, 20);
+        Move_Cursor(garo / 2, sero / 2 - 4);
         set_color(BG_COLOR_BrRED);
-        printf("약국왕");
+        printf("엘리아스의 약국");
         set_color(BG_COLOR_BLACK);
 
-        if (color_num == 1) {
+        if (select == 1) {
             set_color(BG_COLOR_YELLOW);
-            Move_Cursor(130, 25);
+            Move_Cursor(garo / 2, sero / 2 - 3);
             printf("game start");
             printf(COLOR_RESET);
-            Move_Cursor(130, 27);
+            Move_Cursor(garo / 2, sero / 2 - 1);
+            printf("credit");
+            Move_Cursor(garo / 2, sero / 2 + 1);
             printf("exit");
-            Move_Cursor(130, 29);
+        }
+
+
+        if (select == 2) {
+            Move_Cursor(garo / 2, sero / 2 - 3);
+            printf("game start");
+            set_color(BG_COLOR_YELLOW);
+            Move_Cursor(garo / 2, sero / 2 - 1);
+            printf("credit");
+            printf(COLOR_RESET);
+            Move_Cursor(garo / 2, sero / 2 + 1);
+            printf("exit");
+        }
+
+        if (select == 3) {
+            Move_Cursor(garo / 2, sero / 2 - 3);
+            printf("game start");
+            Move_Cursor(garo / 2, sero / 2 - 1);
+            printf("credit");
+            set_color(BG_COLOR_YELLOW);
+            Move_Cursor(garo / 2, sero / 2 + 1);
+            printf("exit");
+            printf(COLOR_RESET);
+        }
+
+        Move_Cursor(0, 0);
+        printf("%d", select);
+
+        /*
+        if (color_num == 1) {
+            set_color(BG_COLOR_YELLOW);
+            Move_Cursor(garo / 2, sero / 2 - 3);
+            printf("game start");
+            printf(COLOR_RESET);
+            Move_Cursor(garo / 2, sero /2 +1);
+            printf("exit");
+            Move_Cursor(garo /2 , sero /2 -1);
             printf("credit");
         }
 
         if (color_num == 2) {
-            Move_Cursor(130, 25);
-            printf("game start");
             set_color(BG_COLOR_YELLOW);
-            Move_Cursor(130, 27);
-            printf("exit");
+            Move_Cursor(garo / 2, sero / 2 - 3);
+            printf("game start");
             printf(COLOR_RESET);
-            Move_Cursor(130, 29);
+            Move_Cursor(garo / 2, sero / 2 + 1);
+            printf("exit");
+            Move_Cursor(garo / 2, sero / 2 - 1);
             printf("credit");
         }
 
         if (color_num == 3) {
-            Move_Cursor(130, 25);
-            printf("game start");
-            Move_Cursor(130, 27);
-            printf("exit");
             set_color(BG_COLOR_YELLOW);
-            Move_Cursor(130, 29);
-            printf("credit");
+            Move_Cursor(garo / 2, sero / 2 - 3);
+            printf("game start");
             printf(COLOR_RESET);
+            Move_Cursor(garo / 2, sero / 2 + 1);
+            printf("exit");
+            Move_Cursor(garo / 2, sero / 2 - 1);
+            printf("credit");
         }
+        */
 
-        Move_Cursor(145, posY);
-        printf("<==");
+
+        //Move_Cursor((garo + 10) / 2, ));
+        //printf("<==");
 
         input = getch();
+
+        switch (input) {
+        case 'w':
+            if (select > 1) {
+                select = select - 1;
+
+            }
+            break;
+        case 's':
+            if (select < 3) {
+                select = select + 1;
+
+            }
+            break;
+        case 13:
+            if (select == 1) {
+                return 1;
+                break;
+            }
+            if (select == 2) {
+                return 3;
+                break;
+            }
+        case 27:
+            return 5;
+            break;
+        }
+
+
+
+        /*
         switch (input) {
         case 'w':
             if (posY > 25) {
@@ -216,10 +291,11 @@ int render_Title() {
             return 5;
             break;
         }
-
+        */
 
         //system("cls");
     }
+
     return 0;
 }
 
