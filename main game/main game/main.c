@@ -1,13 +1,22 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h> // stdio.h ÆÄÀÏ °¡Á®¿À±â
-#include <windows.h> // windows.h ÆÄÀÏ °¡Á®¿À±â
+#include <stdio.h> // stdio.h íŒŒì¼ ê°€ì ¸ì˜¤ê¸°
+#include <windows.h> // windows.h íŒŒì¼ ê°€ì ¸ì˜¤ê¸°
 #pragma execution_character_set("utf-8")
 #include <mmsystem.h>
 
-#pragma comment(lib, "winmm.lib") // MSVC ÄÄÆÄÀÏ·¯¿ë
+#pragma comment(lib, "winmm.lib") // MSVC ì»´íŒŒì¼ëŸ¬ìš©
 
 
-//»öÁöÁ¤
+// ì›”ë“œ ì¢Œí‘œ ì§€ì •
+#define SCR_W 40  // Xì¢Œí‘œ 2ì¹¸ì´ 1ì¹¸ì´ë¯€ë¡œ 80 / 2 = 40
+#define SCR_H 28  // í•˜ë‹¨ UI 2ì¤„ì„ ì œì™¸í•œ 30 - 2 = 28
+
+// ì›”ë“œ í¬ê¸° ì •ì˜
+#define WORLD_W 100
+#define WORLD_H 100
+#define CONSOLE_H 30
+
+//ìƒ‰ì§€ì •
 #define FONT_COLOR_BLACK  30
 #define BG_COLOR_BLACK 40
 #define FONT_COLOR_RED 31
@@ -18,6 +27,15 @@
 #define BG_COLOR_BrRED 101
 #define FONT_COLOR_WHITE 37
 
+// í”½ì…€ ê·¸ë¦¬ê¸° í•¨ìˆ˜ (Xì¶• 2ì¹¸ì„ 1ì¹¸ìœ¼ë¡œ ì²˜ë¦¬í•˜ì—¬ ì •ì‚¬ê°í˜• ë§Œë“¤ê¸°)
+void draw_pixel(int x, int y, int r, int g, int b) {
+    if (x < 0 || x >= SCR_W || y < 0 || y >= SCR_H) return;
+    // ì»¤ì„œ ì´ë™ (1ë¶€í„° ì‹œì‘í•˜ë¯€ë¡œ +1) í›„ RGB ë°°ê²½ìƒ‰ ì§€ì • ì¶œë ¥ í›„ ë¦¬ì…‹
+    printf("\033[%d;%dH\033[48;2;%d;%d;%dm  \033[0m", y + 1, (x * 2) + 1, r, g, b);
+}
+
+
+
 void Move_Cursor(int x, int y) {
 
     printf("\033[%d;%dH", y, x);
@@ -27,35 +45,140 @@ void Move_Cursor(int x, int y) {
 #define COLOR_RESET "\x1b[0m"
 
 /**
- * ÆùÆ®(±ÛÀÚ) »ö»óÀ» º¯°æÇÏ´Â ÇÔ¼ö
- * @param code: 30-37 (±âº»), 90-97 (¹àÀº »ö)
+ * í°íŠ¸(ê¸€ì) ìƒ‰ìƒì„ ë³€ê²½í•˜ëŠ” í•¨ìˆ˜
+ * @param code: 30-37 (ê¸°ë³¸), 90-97 (ë°ì€ ìƒ‰)
  */
 void set_color(int code) {
     printf("\x1b[%dm", code);
 }
 
+int game_map() {
+        printf("\033[?25l\033[2J");
+        // í”Œë ˆì´ì–´ ì´ˆê¸° ì›”ë“œ ì¢Œí‘œ (ì›”ë“œ ì¤‘ì‹¬ ê·¼ì²˜)
+        double playerX = 50.0;
+        double playerY = 50.0;
+        double moveSpeed = 0.8; // GetAsyncKeyStateë¥¼ ìœ„í•œ ë¶€ë“œëŸ¬ìš´ ì´ë™ ì†ë„ ì¡°ì ˆ
+
+        // ì¹´ë©”ë¼ ì¢Œìƒë‹¨ ì›”ë“œ ì¢Œí‘œ (ì´ˆê¸° ê³„ì‚°ìš©)
+        int cameraLeftX = 0;
+        int cameraTopY = 0;
+
+        while (1) {
+            // --- 1. GetAsyncKeyStateë¥¼ ì´ìš©í•œ ë¶€ë“œëŸ¬ìš´ ì…ë ¥ ì²˜ë¦¬ ---
+            // 0x8000 	ì´ì „ì— ëˆ„ë¥¸ ì ì´ ì—†ê³  í˜¸ì¶œ ì‹œì ì—ì„œ ëˆŒë¦° ìƒíƒœ
+            if (GetAsyncKeyState('A') & 0x8000)  playerX -= moveSpeed;
+            if (GetAsyncKeyState('D') & 0x8000) playerX += moveSpeed;
+            if (GetAsyncKeyState('W') & 0x8000)    playerY -= moveSpeed;
+            if (GetAsyncKeyState('S') & 0x8000)  playerY += moveSpeed;
+            if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) break; // ESC ëˆ„ë¥´ë©´ ì¢…ë£Œ
+
+            // í”Œë ˆì´ì–´ ì›”ë“œ ê²½ê³„ì„  ì²´í¬ (0 ~ WORLD-1)
+            if (playerX < 0) playerX = 0;
+            if (playerX > WORLD_W - 1) playerX = WORLD_W - 1;
+            if (playerY < 0) playerY = 0;
+            if (playerY > WORLD_H - 1) playerY = WORLD_H - 1;
+
+            // ì •ìˆ˜í˜• í”Œë ˆì´ì–´ ì¢Œí‘œ (ë Œë”ë§ ë° ì¹´ë©”ë¼ ê³„ì‚°ìš©)
+            int px = (int)playerX;
+            int py = (int)playerY;
+
+
+            // --- 2. ì¹´ë©”ë¼ ìœ„ì¹˜ ê³„ì‚° (1/3 ~ 2/3 ì˜ì—­ ìœ ì§€ ë° ì˜ˆì™¸ ì²˜ë¦¬) ---
+            int limitLeft = SCR_W / 3;
+            int limitRight = (SCR_W * 2) / 3;
+            int limitTop = SCR_H / 3;
+            int limitBottom = (SCR_H * 2) / 3;
+
+            // í˜„ì¬ ì¹´ë©”ë¼ ê¸°ì¤€ í”Œë ˆì´ì–´ì˜ ìƒëŒ€ ìŠ¤í¬ë¦° ì¢Œí‘œ
+            int sX = px - cameraLeftX;
+            int sY = py - cameraTopY;
+
+            // Xì¶• ì¹´ë©”ë¼ ì¶”ì 
+            if (sX < limitLeft)       cameraLeftX = px - limitLeft;
+            else if (sX > limitRight) cameraLeftX = px - limitRight;
+
+            // Yì¶• ì¹´ë©”ë¼ ì¶”ì 
+            if (sY < limitTop)        cameraTopY = py - limitTop;
+            else if (sY > limitBottom) cameraTopY = py - limitBottom;
+
+            // ì¹´ë©”ë¼ ì›”ë“œ ê²½ê³„ì„  ì˜ˆì™¸ ë²•ì¹™ (ì¹´ë©”ë¼ê°€ ì›”ë“œë¥¼ ë²—ì–´ë‚˜ì§€ ì•Šê²Œ ê³ ì •)
+            if (cameraLeftX < 0) cameraLeftX = 0;
+            if (cameraLeftX > WORLD_W - SCR_W) cameraLeftX = WORLD_W - SCR_W;
+            if (cameraTopY < 0) cameraTopY = 0;
+            if (cameraTopY > WORLD_H - SCR_H) cameraTopY = WORLD_H - SCR_H;
+
+
+            // --- 3. ë Œë”ë§ (ê·¸ë¦¬ê¸°) ---
+
+            // ë”ë¸”ë²„í¼ë§ì´ ì—†ìœ¼ë¯€ë¡œ ì”ìƒì„ ì§€ìš°ê¸° ìœ„í•´ ì»¤ì„œë¥¼ ìƒë‹¨ìœ¼ë¡œ ì˜¬ë ¤ ë®ì–´ì“°ê¸° ìœ ë„
+            printf("\033[1;1H");
+
+            // ë°°ê²½ ë° 5í”½ì…€ ë‹¨ìœ„ ë°”ë‘‘íŒ ê·¸ë¦¬ë“œ ê·¸ë¦¬ê¸°
+            for (int y = 0; y < SCR_H; y++) {
+                int wy = cameraTopY + y; // í˜„ì¬ ìŠ¤í¬ë¦° yì— í•´ë‹¹í•˜ëŠ” ì›”ë“œ y ì¢Œí‘œ
+
+                for (int x = 0; x < SCR_W; x++) {
+                    int wx = cameraLeftX + x; // í˜„ì¬ ìŠ¤í¬ë¦° xì— í•´ë‹¹í•˜ëŠ” ì›”ë“œ x ì¢Œí‘œ
+
+                    // 5í”½ì…€ ë‹¨ìœ„ ë°”ë‘‘íŒ ëª¨ì–‘ ê²©ìì„  ê²€ì‚¬ (5ë¡œ ë‚˜ëˆ„ì–´ ë–¨ì–´ì§ˆ ë•Œ íšŒìƒ‰ ì„ )
+                    if (wx % 5 == 0 || wy % 5 == 0) {
+                        draw_pixel(x, y, 80, 80, 80); // íšŒìƒ‰ ì„ 
+                    }
+                    else {
+                        draw_pixel(x, y, 15, 15, 30); // ì§™ì€ ë„¤ì´ë¹„ ë°°ê²½
+                    }
+                }
+            }
+
+            // í”Œë ˆì´ì–´ í™”ë©´ ì¢Œí‘œ ê³„ì‚° í›„ ë…¸ë€ìƒ‰(255, 255, 0)ìœ¼ë¡œ ê·¸ë¦¬ê¸°
+            int p_screen_x = px - cameraLeftX;
+            int p_screen_y = py - cameraTopY;
+            draw_pixel(p_screen_x, p_screen_y, 255, 255, 0);
+
+
+            // --- 4. í•˜ë‹¨ UI ì¶œë ¥ (ë§ˆì§€ë§‰ 2ì¤„ ê³µê°„ í™œìš©) ---
+            // ì¹´ë©”ë¼ì˜ ì¤‘ì•™ì  ì›”ë“œ ì¢Œí‘œ ê³„ì‚°
+            int cameraCenterX = cameraLeftX + (SCR_W / 2);
+            int cameraCenterY = cameraTopY + (SCR_H / 2);
+
+            // UI ì˜ì—­ìœ¼ë¡œ ì»¤ì„œ ì´ë™ (29ë²ˆì§¸ ì¤„)
+            printf("\033[%d;1H", CONSOLE_H - 1);
+            // ì¤„ ì „ì²´ë¥¼ ê³µë°±ìœ¼ë¡œ ë°€ì–´ë²„ë ¤ ê¸€ì ê¹¨ì§ ë°©ì§€
+            printf("\033[K[Camera Center World] X: %3d, Y: %3d\n", cameraCenterX, cameraCenterY);
+            printf("\033[K[Player World] X: %3d, Y: %3d (ESC:ì¢…ë£Œ)",
+                px, py);
+
+            // ë¬´í•œë£¨í”„ ë°©ì§€ ë° ë¶€ë“œëŸ¬ìš´ í”„ë ˆì„ ìœ ì§€ë¥¼ ìœ„í•œ ë”œë ˆì´ 
+            Sleep(33);
+        }
+
+        // ì¢…ë£Œ ì‹œ ì„¤ì • ë³µì› ë° í™”ë©´ ì²­ì†Œ
+        printf("\033[?25h\033[2J\033[1;1H");
+        return 5;
+    }
 
 
 int game_Start() {
 
-    Sleep(2000);
+    //Sleep(2000);
     mciSendString(TEXT("close myBgm"), NULL, 0, NULL);
     int statues01 = "";
 
     system("cls");
     Move_Cursor(60, 25);
-    printf("´ëÇĞ»ıÈ°¿¡ ÁöÃÄ Áı¿¡ µ¹¾Æ¿Â ´ç½Å\n");
+    printf("ëŒ€í•™ìƒí™œì— ì§€ì³ ì§‘ì— ëŒì•„ì˜¨ ë‹¹ì‹ \n");
     //Sleep(4000);
     Move_Cursor(60, 26);
-    printf("Someone has appeared who was called ÄÉÀÎ");
+    printf("Someone has appeared who was called ì¼€ì¸");
     Move_Cursor(60, 27);
     printf("enter");
 
-    while (statues01 != 27) {
-        statues01 = getch();
-        // ¸ÓÇÏÁö...
-    }
-    return 0; // return 5;
+    Sleep(2000);
+   // while (statues01 != 27) {
+   //     statues01 = getch();
+        // ë¨¸í•˜ì§€...
+    //}
+    return 4; // return 5;
 }
 
 int credit_Scr() {
@@ -63,60 +186,60 @@ int credit_Scr() {
 
     system("cls");
     Move_Cursor(50, 5);
-    printf("¸¸µç ³ğµé!!!!!\n");
+    printf("ë§Œë“  ë†ˆë“¤!!!!!\n");
     //Sleep(4000);
     Move_Cursor(50, 16);
-    printf("Å·¿ÕÂ¯ ¸ÚÁø Á¶Àå 202619005 ÀÌÇöÁø\n");
+    printf("í‚¹ì™•ì§± ë©‹ì§„ ì¡°ì¥ 202619005 ì´í˜„ì§„\n");
     Move_Cursor(50, 17);
-    printf("°³¹ß, ¾ÆÆ® µû±î¸®1 202617641 °­º¸¹Î\n");
+    printf("ê°œë°œ, ì•„íŠ¸ ë”°ê¹Œë¦¬1 202617641 ê°•ë³´ë¯¼\n");
     Move_Cursor(50, 18);
-    printf("°³¹ß, ¾ÆÆ® µû±î¸®2 202617100 Çã±Ôºó\n");
+    printf("ê°œë°œ, ì•„íŠ¸ ë”°ê¹Œë¦¬2 202617100 í—ˆê·œë¹ˆ\n");
 
     Move_Cursor(50, 20);
-    printf("¿ìÁ¤ Ãâ¿¬:\n");
+    printf("ìš°ì • ì¶œì—°:\n");
     Move_Cursor(50, 21);
-    printf("AIÄÜÅÙÃ÷°øÇĞ°ú ÀÌÁÖ¿µ, ±â°èÀ¶ÇÕÇĞºÎ 1, ¿¡ÇÇµå°ÔÀÓÁî °ÔÀÓ \"Æ®¸¯ÄÃ\" ½ºÇÇÅ°, ¿¡¸£ÇÉ..");
+    printf("AIì½˜í…ì¸ ê³µí•™ê³¼ ì´ì£¼ì˜, ê¸°ê³„ìœµí•©í•™ë¶€ 1, ì—í”¼ë“œê²Œì„ì¦ˆ ê²Œì„ \"íŠ¸ë¦­ì»¬\" ìŠ¤í”¼í‚¤, ì—ë¥´í•€..");
     Move_Cursor(50, 23);
-    printf("µ¹¾Æ°¡½Ã·Á¸é escÅ°¸¦ ´©¸£½Ê½Ã¿À");
+    printf("ëŒì•„ê°€ì‹œë ¤ë©´ escí‚¤ë¥¼ ëˆ„ë¥´ì‹­ì‹œì˜¤");
     while (statues01 != 27) {
         statues01 = getch();
-        // ¸ÓÇÏÁö...
+        // ë¨¸í•˜ì§€...
     }
     system("cls");
     return 0; // return 5;
 }
 
 int loading() {
-    //°ÔÀÓ ·Î°í µîÀå
+    //ê²Œì„ ë¡œê³  ë“±ì¥
 
     system("cls");
     Move_Cursor(10, 5);
-    printf("º» °ÔÀÓÀº ÀüÃ¼È­¸éÀ¸·Î ÇÃ·¹ÀÌÇÏ´Â °ÍÀ» ÀüÁ¦·Î Á¦ÀÛ µÇ¾ú½À´Ï´Ù");
+    printf("ë³¸ ê²Œì„ì€ ì „ì²´í™”ë©´ìœ¼ë¡œ í”Œë ˆì´í•˜ëŠ” ê²ƒì„ ì „ì œë¡œ ì œì‘ ë˜ì—ˆìŠµë‹ˆë‹¤");
     Move_Cursor(10, 6);
-    printf("ÀüÃ¼È­¸éÀ¸·Î ÀüÈ¯ÇØ ÁÖ¼¼¿ä");
+    printf("ì „ì²´í™”ë©´ìœ¼ë¡œ ì „í™˜í•´ ì£¼ì„¸ìš”");
     Sleep(4000);
 
     system("cls");
 
     FILE* logo;
-    char line[1024]; // ÇÑ ÁÙÀ» ÀúÀåÇÒ ¹öÆÛ (±æÀÌ¿¡ µû¶ó Á¶Àı °¡´É)
+    char line[1024]; // í•œ ì¤„ì„ ì €ì¥í•  ë²„í¼ (ê¸¸ì´ì— ë”°ë¼ ì¡°ì ˆ ê°€ëŠ¥)
 
-    // ÆÄÀÏ ¿­±â
+    // íŒŒì¼ ì—´ê¸°
     logo = fopen("logo.txt", "r");
     mciSendString(TEXT("open \"mp3s/nerujimaseyo.mp3\" type mpegvideo alias logo"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
 
 
-    // ÆÄÀÏ ³¡±îÁö ÇÑ ÁÙ¾¿ ÀĞ¾î¼­ Ãâ·Â
+    // íŒŒì¼ ëê¹Œì§€ í•œ ì¤„ì”© ì½ì–´ì„œ ì¶œë ¥
     while (fgets(line, sizeof(line), logo) != NULL) {
         printf("%s", line);
     }
 
     mciSendString(TEXT("play logo repeat"), NULL, 0, NULL);
     mciSendString(TEXT("play logo wait"), NULL, 0, NULL);
-    // ÆÄÀÏ ´İ±â
+    // íŒŒì¼ ë‹«ê¸°
     fclose(logo);
-    // 1. ¹è°æÀ½¾Ç
+    // 1. ë°°ê²½ìŒì•…
     mciSendString(TEXT("setaudio myBgm volume to 100"), NULL, 0, NULL);
     mciSendString(TEXT("play myBgm repeat"), NULL, 0, NULL);
     mciSendString(TEXT("close logo"), NULL, 0, NULL);
@@ -143,7 +266,7 @@ int render_Title() {
 
     Sleep(1000);
     //Move_Cursor(garo / 2, sero / 2 - 4);
-    //printf("·ÎµùÁßÀÔ´Ï´Ù¶÷Áã");
+    //printf("ë¡œë”©ì¤‘ì…ë‹ˆë‹¤ëŒì¥");
 
 
     while (input != 27) {
@@ -154,7 +277,7 @@ int render_Title() {
         //printf(color_num);
         Move_Cursor(garo / 2, sero / 2 - 4);
         set_color(BG_COLOR_BrRED);
-        printf("¿¤¸®¾Æ½ºÀÇ ¾à±¹");
+        printf("ì—˜ë¦¬ì•„ìŠ¤ì˜ ì•½êµ­");
         set_color(BG_COLOR_BLACK);
 
         if (select == 1) {
@@ -324,19 +447,21 @@ int main() {
         case 3:
             selec_Op = credit_Scr();
             break;
+        case 4:
+            selec_Op = game_map();
         case 5:
-            goto exit; // °ÔÀÓ Á¾·á
+            goto exit; // ê²Œì„ ì¢…ë£Œ
         }
 
     }
 exit:
     system("cls");
-    printf("°ÔÀÓÀ» Á¾·áÇÏ½Ã°Ú½À´Ï±î?\n");
-    printf("Ãë¼ÒÇÏ·Á¸é escÅ°¸¦, Á¾·áÇÏ·Á¸é ¿£ÅÍÅ°¸¦ ÀÔ·ÂÇÏ½Ê½Ã¿À");
+    printf("ê²Œì„ì„ ì¢…ë£Œí•˜ì‹œê² ìŠµë‹ˆê¹Œ?\n");
+    printf("ì·¨ì†Œí•˜ë ¤ë©´ escí‚¤ë¥¼, ì¢…ë£Œí•˜ë ¤ë©´ ì—”í„°í‚¤ë¥¼ ì…ë ¥í•˜ì‹­ì‹œì˜¤");
     int exit_key01 = getch();
     if (exit_key01 == 13) {
         Move_Cursor(0, 21);
-        return printf("break"); // ½ÇÇà Á¾·á½Ã break ¹®ÀÚ Ãâ·Â
+        return printf("break"); // ì‹¤í–‰ ì¢…ë£Œì‹œ break ë¬¸ì ì¶œë ¥
     }
     if (exit_key01 == 27)
     {
