@@ -12,8 +12,8 @@
 #define SCR_H 28  // 하단 UI 2줄을 제외한 30 - 2 = 28
 
 // 월드 크기 정의
-#define WORLD_W 100
-#define WORLD_H 100
+#define WORLD_W 40
+#define WORLD_H 28
 #define CONSOLE_H 30
 
 //색지정
@@ -113,6 +113,9 @@ int game_map() {
             // 더블버퍼링이 없으므로 잔상을 지우기 위해 커서를 상단으로 올려 덮어쓰기 유도
             printf("\033[1;1H");
 
+
+            
+            
             // 배경 및 5픽셀 단위 바둑판 그리드 그리기
             for (int y = 0; y < SCR_H; y++) {
                 int wy = cameraTopY + y; // 현재 스크린 y에 해당하는 월드 y 좌표
@@ -129,6 +132,8 @@ int game_map() {
                     }
                 }
             }
+            
+
 
             // 플레이어 화면 좌표 계산 후 노란색(255, 255, 0)으로 그리기
             int p_screen_x = px - cameraLeftX;
@@ -144,12 +149,12 @@ int game_map() {
             // UI 영역으로 커서 이동 (29번째 줄)
             printf("\033[%d;1H", CONSOLE_H - 1);
             // 줄 전체를 공백으로 밀어버려 글자 깨짐 방지
-            printf("\033[K[Camera Center World] X: %3d, Y: %3d\n", cameraCenterX, cameraCenterY);
-            printf("\033[K[Player World] X: %3d, Y: %3d (ESC:종료)",
-                px, py);
+            //printf("\033[K[Camera Center World] X: %3d, Y: %3d\n", cameraCenterX, cameraCenterY);
+            //printf("\033[K[Player World] X: %3d, Y: %3d (ESC:종료)",
+             //   px, py);
 
             // 무한루프 방지 및 부드러운 프레임 유지를 위한 딜레이 
-            Sleep(33);
+            Sleep(16);
         }
 
         // 종료 시 설정 복원 및 화면 청소
@@ -166,18 +171,28 @@ int game_Start() {
 
     system("cls");
     Move_Cursor(60, 25);
-    printf("대학생활에 지쳐 집에 돌아온 당신\n");
-    //Sleep(4000);
+    printf("낮선 이곳에 이사오게된 당신\n");
+    Sleep(1500);
     Move_Cursor(60, 26);
-    printf("Someone has appeared who was called 케인");
-    Move_Cursor(60, 27);
-    printf("enter");
+    printf("이곳에서 약국을 차리기로 하는데...");
+    Sleep(4000);
+    system("cls");
+    Move_Cursor(60, 25);
+    printf("???:맛있는거 내놔");
+    Sleep(1500);
+    Move_Cursor(60, 26);
+    printf("네?");
+    Sleep(3000);
+    system("cls");
+    Move_Cursor(60, 25);
+    printf("아무래도 잘못 개업한거 같다");
 
-    Sleep(2000);
+    Sleep(4000);
    // while (statues01 != 27) {
    //     statues01 = getch();
         // 머하지...
     //}
+    system("cls");
     return 4; // return 5;
 }
 
