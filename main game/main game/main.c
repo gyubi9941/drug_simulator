@@ -52,18 +52,110 @@ void set_color(int code) {
     printf("\x1b[%dm", code);
 }
 
+const char* PHARMACY[] = {
+    "GGGGGGGGG",
+    "GGGGRGGGG",
+    "GGGGRGGGG",
+    "GGRRRRRGG",
+    "GGGGRGGGG",
+    "GGGGRGGGG",
+    "GGGGGGGGG",
+    "GGGGGGGGG"
+};
+
+const char* HOUSE[] = {
+    ".....R.....",
+    "....RRR....",
+    "...RRRRR...",
+    "..RRRRRRR..",
+    ".RRRRRRRRR.",
+    ".YYYYYYYYY.",
+    ".YYWYYYWYY.",
+    ".YYYYDYYYY.",
+    ".YYYYYYYYY."
+};
+
+void draw_sprite(
+    int worldX,
+    int worldY,
+    const char* sprite[],
+    int h,
+    int cameraLeftX,
+    int cameraTopY
+)
+{
+    for (int y = 0; y < h; y++)
+    {
+        for (int x = 0; sprite[y][x] != '\0'; x++)
+        {
+            int sx = worldX - cameraLeftX + x;
+            int sy = worldY - cameraTopY + y;
+
+            char c = sprite[y][x];
+
+            switch (c)
+            {
+            case 'R':
+                draw_pixel(sx, sy, 200, 40, 40);
+                break;
+
+            case 'Y':
+                draw_pixel(sx, sy, 230, 220, 120);
+                break;
+
+            case 'W':
+                draw_pixel(sx, sy, 100, 180, 255);
+                break;
+
+            case 'D':
+                draw_pixel(sx, sy, 120, 70, 20);
+                break;
+
+            case 'G':
+                draw_pixel(sx, sy, 80, 200, 80);
+                break;
+            }
+        }
+    }
+}
+
 int game_map() {
         printf("\033[?25l\033[2J");
         // 플레이어 초기 월드 좌표 (월드 중심 근처)
-        double playerX = 50.0;
-        double playerY = 50.0;
-        double moveSpeed = 0.8; // GetAsyncKeyState를 위한 부드러운 이동 속도 조절
+        int playerX = 50.0;
+        int playerY = 50.0;
+        int moveSpeed = 1; // GetAsyncKeyState를 위한 부드러운 이동 속도 조절
 
         // 카메라 좌상단 월드 좌표 (초기 계산용)
         int cameraLeftX = 0;
         int cameraTopY = 0;
 
+        // 배경 및 5픽셀 단위 바둑판 그리드 그리기
+        for (int y = 0; y < SCR_H; y++) {
+            int wy = cameraTopY + y; // 현재 스크린 y에 해당하는 월드 y 좌표
+
+            for (int x = 0; x < SCR_W; x++) {
+                int wx = cameraLeftX + x; // 현재 스크린 x에 해당하는 월드 x 좌표
+
+                // 5픽셀 단위 바둑판 모양 격자선 검사 (5로 나누어 떨어질 때 회색 선)
+                if (wx % 5 == 0 || wy % 5 == 0) {
+                    draw_pixel(x, y, 80, 80, 80); // 회색 선
+                }
+                else {
+                    draw_pixel(x, y, 15, 15, 30); // 짙은 네이비 배경
+                }
+            }
+        }
+
+        draw_sprite(1, 20, HOUSE, 9, cameraLeftX, cameraTopY);
+        draw_sprite(30, 20, PHARMACY, 9, cameraLeftX, cameraTopY);
+
+
         while (1) {
+
+            int oldPlayerX = playerX;
+            int oldPlayerY = playerY;
+
             // --- 1. GetAsyncKeyState를 이용한 부드러운 입력 처리 ---
             // 0x8000 	이전에 누른 적이 없고 호출 시점에서 눌린 상태
             if (GetAsyncKeyState('A') & 0x8000)  playerX -= moveSpeed;
@@ -113,26 +205,13 @@ int game_map() {
             // 더블버퍼링이 없으므로 잔상을 지우기 위해 커서를 상단으로 올려 덮어쓰기 유도
             printf("\033[1;1H");
 
+            int wx = cameraLeftX + oldPlayerX;
+            int wy = cameraTopY + oldPlayerY;
 
-            
-            
-            // 배경 및 5픽셀 단위 바둑판 그리드 그리기
-            for (int y = 0; y < SCR_H; y++) {
-                int wy = cameraTopY + y; // 현재 스크린 y에 해당하는 월드 y 좌표
-
-                for (int x = 0; x < SCR_W; x++) {
-                    int wx = cameraLeftX + x; // 현재 스크린 x에 해당하는 월드 x 좌표
-
-                    // 5픽셀 단위 바둑판 모양 격자선 검사 (5로 나누어 떨어질 때 회색 선)
-                    if (wx % 5 == 0 || wy % 5 == 0) {
-                        draw_pixel(x, y, 80, 80, 80); // 회색 선
-                    }
-                    else {
-                        draw_pixel(x, y, 15, 15, 30); // 짙은 네이비 배경
-                    }
-                }
-            }
-            
+            if (wx % 5 == 0 || wy % 5 == 0)
+                draw_pixel(oldPlayerX, oldPlayerY, 80, 80, 80);
+            else
+                draw_pixel(oldPlayerX, oldPlayerY, 15, 15, 30);
 
 
             // 플레이어 화면 좌표 계산 후 노란색(255, 255, 0)으로 그리기
@@ -154,7 +233,53 @@ int game_map() {
              //   px, py);
 
             // 무한루프 방지 및 부드러운 프레임 유지를 위한 딜레이 
-            //Sleep(16);
+            Sleep(16);
+            fflush(stdout);
+
+            printf("\033[%d;1H", SCR_H + 2);
+            printf("================================");
+            printf("\033[%d;1H", SCR_H + 3);
+            printf("PLAYER POSITION : (%d, %d)     ",playerX, playerY);
+
+            if (playerX == 10 && playerY == 27)
+            {
+                int house_choice;
+
+                printf("\033[%d;1H", SCR_H + 5);
+                printf("집에 들어가시겠습니까?\n");
+                printf("1. 예\n");
+                printf("2. 아니오\n");
+                printf("선택: ");
+
+                if (scanf("%d", &house_choice) == 1)
+                {
+                    if (house_choice == 1)
+                    {
+                        // 집 내부로 이동
+                        return 5;
+                    }
+                }
+            }
+            if (playerX == 29 && playerY == 27)
+            {
+                int pharmasist_choice;
+
+                printf("\033[%d;1H", SCR_H + 5);
+                printf("약국에 들어가시겠습니까?\n");
+                printf("1. 예\n");
+                printf("2. 아니오\n");
+                printf("선택: ");
+
+                if (scanf("%d", &pharmasist_choice) == 1)
+                {
+                    if (pharmasist_choice == 1)
+                    {
+                        // 약국 내부로 이동
+                        return 6;
+                    }
+                }
+            }
+
         }
 
         // 종료 시 설정 복원 및 화면 청소
@@ -194,6 +319,152 @@ int game_Start() {
     //}
     system("cls");
     return 4; // return 5;
+}
+
+int main_game()
+{
+    int day = 1;
+    int money = 10000;
+    int satisfaction = 50;
+    int customer_count = 0;
+
+    char medicine[50];
+
+    typedef struct
+    {
+        char dialogue[200];
+        char answer[50];
+    } Customer;
+
+    srand(time(NULL));
+
+    while (day <= 10)
+    {
+        system("cls");
+
+        printf("=================================\n");
+        printf("        약국 시뮬레이터\n");
+        printf("=================================\n");
+        printf("현재 날짜 : %d일차\n", day);
+        printf("돈 : %d원\n", money);
+        printf("만족도 : %d\n", satisfaction);
+        printf("\n");
+
+        printf("[대기중...]\n");
+
+        printf("엔터를 누르면 손님 등장\n");
+
+        (void)getchar();
+
+        Customer customers[10] =
+        {
+            {"손님1 대사", "약1"},
+            {"손님2 대사", "약2"},
+            {"손님3 대사", "약3"},
+            {"손님4 대사", "약4"},
+            {"손님5 대사", "약5"},
+            {"손님6 대사", "약6"},
+            {"손님7 대사", "약7"},
+            {"손님8 대사", "약8"},
+            {"손님9 대사", "약9"},
+            {"손님10 대사", "약10"}
+        };
+
+        int customerIndex = rand() % 10;
+
+        Customer customer = customers[customerIndex];
+
+        printf("\n");
+        printf("손님 등장!\n");
+        printf("\n");
+
+        char* goodLines[10] = // 긍정대사
+        {
+            "긍정대사1",
+            "긍정대사2",
+            "긍정대사3",
+            "긍정대사4",
+            "긍정대사5",
+            "긍정대사6",
+            "긍정대사7",
+            "긍정대사8",
+            "긍정대사9",
+            "긍정대사10"
+        };
+
+        char* badLines[10] = //부정대사
+        {
+            "부정대사1",
+            "부정대사2",
+            "부정대사3",
+            "부정대사4",
+            "부정대사5",
+            "부정대사6",
+            "부정대사7",
+            "부정대사8",
+            "부정대사9",
+            "부정대사10"
+        };
+
+        printf("%s\n", customer.dialogue);
+
+        //--------------------------------
+        // 약 선택
+        //--------------------------------
+
+        printf("\n");
+        printf("판매할 약 이름 입력 : ");
+         
+        scanf_s("%49s", medicine, (unsigned)_countof(medicine));
+
+        //--------------------------------
+        // 판정
+        //--------------------------------
+
+        if (strcmp(medicine, customer.answer) == 0)
+        {
+            int line = rand() % 10;
+
+            printf("\n");
+            printf("%s\n", goodLines[line]);
+
+            money += 5000;
+            satisfaction += 5;
+        }
+        else
+        {
+            int line = rand() % 10;
+
+            printf("\n");
+            printf("%s\n", badLines[line]);
+
+            money -= 3000;
+            satisfaction -= 5;
+        }
+
+        //--------------------------------
+        // 결과
+        //--------------------------------
+
+        printf("\n");
+        printf("현재 돈 : %d\n", money);
+        printf("현재 만족도 : %d\n", satisfaction);
+
+        printf("\n손님이 떠났습니다.\n");
+
+        printf("\n계속하려면 엔터...");
+
+        (void)getchar();
+        (void)getchar();
+
+
+        customer_count++;
+
+        if (customer_count == 4)
+        {
+            day++;
+        }
+    }
 }
 
 int credit_Scr() {
@@ -396,7 +667,7 @@ int render_Title() {
                 break;
             }
         case 27:
-            return 5;
+            return 7;
             break;
         }
 
@@ -437,7 +708,14 @@ int render_Title() {
     return 0;
 }
 
-
+int house() 
+{
+    int choice = 0;
+    system("cls");
+    Move_Cursor(40, 40);
+    printf("아늑한 집입니다.\n");
+    Sleep(50000 );
+}
 
 
 int main() {
@@ -464,11 +742,19 @@ int main() {
             break;
         case 4:
             selec_Op = game_map();
+            break;
         case 5:
-            goto exit; // 게임 종료
+            selec_Op = house();
+            break;
+        case 6:
+            selec_Op = main_game();
+            break;
+        case 7:
+            goto exit;
         }
 
     }
+
 exit:
     system("cls");
     printf("게임을 종료하시겠습니까?\n");
