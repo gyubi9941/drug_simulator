@@ -8,12 +8,12 @@
 
 
 // 월드 좌표 지정
-#define SCR_W 40  // X좌표 2칸이 1칸이므로 80 / 2 = 40
+#define SCR_W 80  // X좌표 2칸이 1칸이므로 80 / 2 = 40
 #define SCR_H 28  // 하단 UI 2줄을 제외한 30 - 2 = 28
 
 // 월드 크기 정의
-#define WORLD_W 40
-#define WORLD_H 28
+#define WORLD_W 100
+#define WORLD_H 100
 #define CONSOLE_H 30
 
 //색지정
@@ -74,7 +74,63 @@ const char* HOUSE[] = {
     ".YYYYDYYYY.",
     ".YYYYYYYYY."
 };
-
+const char* SKY[] = {
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWCCCWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWCCCCCWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWCCCCWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWCCCCCCCCWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWCCCWWWWWWWWWW",
+    "WWWWWWWWWCCWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWCCCCCCCWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWCCCWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW",
+    "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD",
+};
+const char* ROOM[] = {
+    "HHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHH",
+    "HHHHQQQQQQQQQQQCCCCCCCCCCQQQQQQQQQQQHHHH",
+    "HHHHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHHHH",
+    "HHHHHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHHHHH",
+    "HHHHHHHQQQQQQQQQQQQQQQQQQQQQQQQQQHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJWWWWWWWWJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJWWWWWWWWJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJWWWWWWWWJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJDDDDDDDDDDJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHNNNNNNJJJJJJJJJJJJJJDDDDDDHHHHHHH",
+    "HHHHHHNNNNNNNJJJJJJJJJJJJJJDDDDDDHHHHHHH",
+    "HHHHHNCCCCCCNJJJJJJJJJJJJJJDDCCCDHHHHHHH",
+    "HHHHHNJJJJJJNJJJJJJJJJJJJJJDRRRRRRHHHHHH",
+    "HHHHHNBBBBBBNBBBBBBBBBBBBBBDDRRRRRRHHHHH",
+    "HHHHHBBBBBBBBBBBBBBBBBBBBBBDBDRRRRRRHHHH",
+    "HHHHBBBBBBBBBBBBBBBBBBBBBBBBBBDRRRRRRHHH",
+    "HHHBBBBBBBBBBBBBBBBBBBBBBBBBBBBDRRRRRRHH",
+    "HHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBDDDDDDDDH",
+    "HBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBDBBBBBBDH",
+};
 void draw_sprite(
     int worldX,
     int worldY,
@@ -114,180 +170,259 @@ void draw_sprite(
             case 'G':
                 draw_pixel(sx, sy, 80, 200, 80);
                 break;
+            case 'C':
+                draw_pixel(sx, sy, 255, 255, 255);
+                break;
+            case 'N':
+                draw_pixel(sx, sy, 0, 0, 0);
+                break;
+            case 'Q':
+                draw_pixel(sx, sy, 190, 190, 190);
+                break;
+            case 'B':
+                draw_pixel(sx, sy, 165, 135, 100);
+                break;
+            case 'H':
+                draw_pixel(sx, sy, 200, 200, 200);
+                break;
+            case 'J':
+                draw_pixel(sx, sy, 210, 210, 210);
+                break;
             }
         }
     }
 }
 
 int game_map() {
-        printf("\033[?25l\033[2J");
-        // 플레이어 초기 월드 좌표 (월드 중심 근처)
-        int playerX = 50.0;
-        int playerY = 50.0;
-        int moveSpeed = 1; // GetAsyncKeyState를 위한 부드러운 이동 속도 조절
+    printf("\033[?25l\033[2J");
+    // 플레이어 초기 월드 좌표 (월드 중심 근처)
+    int playerX = 13.0;
+    int playerY = 26.0;
+    int moveSpeed = 1; // GetAsyncKeyState를 위한 부드러운 이동 속도 조절
 
-        // 카메라 좌상단 월드 좌표 (초기 계산용)
-        int cameraLeftX = 0;
-        int cameraTopY = 0;
+    // 카메라 좌상단 월드 좌표 (초기 계산용)
+    int cameraLeftX = 0;
+    int cameraTopY = 0;
 
-        // 배경 및 5픽셀 단위 바둑판 그리드 그리기
-        for (int y = 0; y < SCR_H; y++) {
-            int wy = cameraTopY + y; // 현재 스크린 y에 해당하는 월드 y 좌표
 
-            for (int x = 0; x < SCR_W; x++) {
-                int wx = cameraLeftX + x; // 현재 스크린 x에 해당하는 월드 x 좌표
 
-                // 5픽셀 단위 바둑판 모양 격자선 검사 (5로 나누어 떨어질 때 회색 선)
-                if (wx % 5 == 0 || wy % 5 == 0) {
-                    draw_pixel(x, y, 80, 80, 80); // 회색 선
-                }
-                else {
-                    draw_pixel(x, y, 15, 15, 30); // 짙은 네이비 배경
-                }
+    draw_sprite(0, 0, SKY, 28, cameraLeftX, cameraTopY);
+    draw_sprite(1, 19, HOUSE, 8, cameraLeftX, cameraTopY);
+    draw_sprite(30, 19, PHARMACY, 8, cameraLeftX, cameraTopY);
+    draw_pixel(13, 26, 255, 255, 0);
+
+    while (1) {
+        Sleep(22);
+        int oldPlayerX = playerX;
+        int oldPlayerY = playerY;
+
+        // --- 1. GetAsyncKeyState를 이용한 부드러운 입력 처리 ---
+        // 0x8000 	이전에 누른 적이 없고 호출 시점에서 눌린 상태
+        if (GetAsyncKeyState('A') & 0x8000)  playerX -= moveSpeed;
+        if (GetAsyncKeyState('D') & 0x8000) playerX += moveSpeed;
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) break; // ESC 누르면 종료
+
+        // 플레이어 월드 경계선 체크 (0 ~ WORLD-1)
+        if (playerX < 0) playerX = 0;
+        if (playerX > WORLD_W - 1) playerX = WORLD_W - 1;
+        if (playerY < 0) playerY = 0;
+        if (playerY > WORLD_H - 1) playerY = WORLD_H - 1;
+
+        // 정수형 플레이어 좌표 (렌더링 및 카메라 계산용)
+        int px = (int)playerX;
+        int py = (int)playerY;
+
+
+
+
+        // 카메라 월드 경계선 예외 법칙 (카메라가 월드를 벗어나지 않게 고정)
+        if (cameraLeftX < 0) cameraLeftX = 0;
+        if (cameraLeftX > WORLD_W - SCR_W) cameraLeftX = WORLD_W - SCR_W;
+        if (cameraTopY < 0) cameraTopY = 0;
+        if (cameraTopY > WORLD_H - SCR_H) cameraTopY = WORLD_H - SCR_H;
+
+
+        // --- 3. 렌더링 (그리기) ---
+
+        // 플레이어가 실제로 이동했을 때만 잔상을 지우고 새로 그린다.
+        // 이러면 매 프레임 그리지 않아도 되니까 화면 깜빡임(Flickering)이 확 줄어들어.
+        if (oldPlayerX != playerX || oldPlayerY != playerY) {
+
+            // [1단계] 지나간 옛날 자리(oldPlayerX, oldPlayerY) 완벽 복구하기
+            char bg_char = 'W'; // 기본값은 파란 하늘
+
+            // 1. SKY 배열에서 원래 타일 찾기 (구름, 땅 등)
+            if (oldPlayerY >= 0 && oldPlayerY < 28 && oldPlayerX >= 0 && oldPlayerX < 40) {
+                bg_char = SKY[oldPlayerY][oldPlayerX];
             }
-        }
 
-        draw_sprite(1, 20, HOUSE, 9, cameraLeftX, cameraTopY);
-        draw_sprite(30, 20, PHARMACY, 9, cameraLeftX, cameraTopY);
+            // 2. 만약 옛날 자리가 HOUSE(집) 영역이었다면 덮어쓰기
+            // 집은 (1, 19)부터 너비 11, 높이 8
+            if (oldPlayerX >= 1 && oldPlayerX < 1 + 11 && oldPlayerY >= 19 && oldPlayerY < 19 + 8) {
+                char hc = HOUSE[oldPlayerY - 19][oldPlayerX - 1];
+                if (hc != '.') bg_char = hc; // '.'은 투명한 공간이므로 무시
+            }
 
+            // 3. 만약 옛날 자리가 PHARMACY(약국) 영역이었다면 덮어쓰기
+            // 약국은 (30, 19)부터 너비 9, 높이 8
+            if (oldPlayerX >= 30 && oldPlayerX < 30 + 9 && oldPlayerY >= 19 && oldPlayerY < 19 + 8) {
+                char pc = PHARMACY[oldPlayerY - 19][oldPlayerX - 30];
+                if (pc != '.') bg_char = pc;
+            }
 
-        while (1) {
-
-            int oldPlayerX = playerX;
-            int oldPlayerY = playerY;
-
-            // --- 1. GetAsyncKeyState를 이용한 부드러운 입력 처리 ---
-            // 0x8000 	이전에 누른 적이 없고 호출 시점에서 눌린 상태
-            if (GetAsyncKeyState('A') & 0x8000)  playerX -= moveSpeed;
-            if (GetAsyncKeyState('D') & 0x8000) playerX += moveSpeed;
-            if (GetAsyncKeyState('W') & 0x8000)    playerY -= moveSpeed;
-            if (GetAsyncKeyState('S') & 0x8000)  playerY += moveSpeed;
-            if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) break; // ESC 누르면 종료
-
-            // 플레이어 월드 경계선 체크 (0 ~ WORLD-1)
-            if (playerX < 0) playerX = 0;
-            if (playerX > WORLD_W - 1) playerX = WORLD_W - 1;
-            if (playerY < 0) playerY = 0;
-            if (playerY > WORLD_H - 1) playerY = WORLD_H - 1;
-
-            // 정수형 플레이어 좌표 (렌더링 및 카메라 계산용)
-            int px = (int)playerX;
-            int py = (int)playerY;
+            // 옛날 위치의 스크린 좌표 계산
+            int old_sx = oldPlayerX - cameraLeftX;
+            int old_sy = oldPlayerY - cameraTopY;
 
 
-            // --- 2. 카메라 위치 계산 (1/3 ~ 2/3 영역 유지 및 예외 처리) ---
-            int limitLeft = SCR_W / 3;
-            int limitRight = (SCR_W * 2) / 3;
-            int limitTop = SCR_H / 3;
-            int limitBottom = (SCR_H * 2) / 3;
+            switch (bg_char) {
+            case 'W': draw_pixel(old_sx, old_sy, 100, 180, 255); break;
+            }
 
-            // 현재 카메라 기준 플레이어의 상대 스크린 좌표
-            int sX = px - cameraLeftX;
-            int sY = py - cameraTopY;
-
-            // X축 카메라 추적
-            if (sX < limitLeft)       cameraLeftX = px - limitLeft;
-            else if (sX > limitRight) cameraLeftX = px - limitRight;
-
-            // Y축 카메라 추적
-            if (sY < limitTop)        cameraTopY = py - limitTop;
-            else if (sY > limitBottom) cameraTopY = py - limitBottom;
-
-            // 카메라 월드 경계선 예외 법칙 (카메라가 월드를 벗어나지 않게 고정)
-            if (cameraLeftX < 0) cameraLeftX = 0;
-            if (cameraLeftX > WORLD_W - SCR_W) cameraLeftX = WORLD_W - SCR_W;
-            if (cameraTopY < 0) cameraTopY = 0;
-            if (cameraTopY > WORLD_H - SCR_H) cameraTopY = WORLD_H - SCR_H;
-
-
-            // --- 3. 렌더링 (그리기) ---
-
-            // 더블버퍼링이 없으므로 잔상을 지우기 위해 커서를 상단으로 올려 덮어쓰기 유도
-            printf("\033[1;1H");
-
-            int wx = cameraLeftX + oldPlayerX;
-            int wy = cameraTopY + oldPlayerY;
-
-            if (wx % 5 == 0 || wy % 5 == 0)
-                draw_pixel(oldPlayerX, oldPlayerY, 80, 80, 80);
-            else
-                draw_pixel(oldPlayerX, oldPlayerY, 15, 15, 30);
-
-
-            // 플레이어 화면 좌표 계산 후 노란색(255, 255, 0)으로 그리기
-            int p_screen_x = px - cameraLeftX;
-            int p_screen_y = py - cameraTopY;
+            // [2단계] 새로운 위치에 플레이어 그리기
+            int p_screen_x = playerX - cameraLeftX;
+            int p_screen_y = playerY - cameraTopY;
             draw_pixel(p_screen_x, p_screen_y, 255, 255, 0);
+        }
+        // --- 4. 하단 UI 출력 (마지막 2줄 공간 활용) ---
+        // 카메라의 중앙점 월드 좌표 계산
+        int cameraCenterX = cameraLeftX + (SCR_W / 2);
+        int cameraCenterY = cameraTopY + (SCR_H / 2);
 
+        // UI 영역으로 커서 이동 (29번째 줄)
+        printf("\033[%d;1H", CONSOLE_H - 1);
+        // 줄 전체를 공백으로 밀어버려 글자 깨짐 방지
+        //printf("\033[K[Camera Center World] X: %3d, Y: %3d\n", cameraCenterX, cameraCenterY);
+        //printf("\033[K[Player World] X: %3d, Y: %3d (ESC:종료)",
+         //   px, py);
 
-            // --- 4. 하단 UI 출력 (마지막 2줄 공간 활용) ---
-            // 카메라의 중앙점 월드 좌표 계산
-            int cameraCenterX = cameraLeftX + (SCR_W / 2);
-            int cameraCenterY = cameraTopY + (SCR_H / 2);
+        // 무한루프 방지 및 부드러운 프레임 유지를 위한 딜레이 
+        Sleep(16);
 
-            // UI 영역으로 커서 이동 (29번째 줄)
-            printf("\033[%d;1H", CONSOLE_H - 1);
-            // 줄 전체를 공백으로 밀어버려 글자 깨짐 방지
-            //printf("\033[K[Camera Center World] X: %3d, Y: %3d\n", cameraCenterX, cameraCenterY);
-            //printf("\033[K[Player World] X: %3d, Y: %3d (ESC:종료)",
-             //   px, py);
+        //위치출력
+        printf("\033[%d;1H", SCR_H + 2);
+        printf("================================");
+        printf("\033[%d;1H", SCR_H + 3);
+        printf("PLAYER POSITION : (%d, %d)     ", playerX, playerY);
 
-            // 무한루프 방지 및 부드러운 프레임 유지를 위한 딜레이 
-            Sleep(16);
-            fflush(stdout);
-
-            printf("\033[%d;1H", SCR_H + 2);
-            printf("================================");
-            printf("\033[%d;1H", SCR_H + 3);
-            printf("PLAYER POSITION : (%d, %d)     ",playerX, playerY);
-
-            if (playerX == 10 && playerY == 27)
-            {
-                int house_choice;
-
-                printf("\033[%d;1H", SCR_H + 5);
-                printf("집에 들어가시겠습니까?\n");
-                printf("1. 예\n");
-                printf("2. 아니오\n");
-                printf("선택: ");
-
-                if (scanf("%d", &house_choice) == 1)
-                {
-                    if (house_choice == 1)
-                    {
-                        // 집 내부로 이동
-                        return 5;
-                    }
-                }
-            }
-            if (playerX == 29 && playerY == 27)
-            {
-                int pharmasist_choice;
-
-                printf("\033[%d;1H", SCR_H + 5);
-                printf("약국에 들어가시겠습니까?\n");
-                printf("1. 예\n");
-                printf("2. 아니오\n");
-                printf("선택: ");
-
-                if (scanf("%d", &pharmasist_choice) == 1)
-                {
-                    if (pharmasist_choice == 1)
-                    {
-                        // 약국 내부로 이동
-                        return 6;
-                    }
-                }
-            }
+        if (playerX == 10)
+        {
+            //집 이동
+            printf("\033[?25h\033[2J\033[1;1H");
+            return 5;
+        }
+        if (playerX == 30)
+        {
+            printf("\033[?25h\033[2J\033[1;1H");
+            // 약국 내부로 이동
+            return 6;
 
         }
 
-        // 종료 시 설정 복원 및 화면 청소
-        printf("\033[?25h\033[2J\033[1;1H");
-        return 5;
     }
 
+    // 종료 시 설정 복원 및 화면 청소
+    printf("\033[?25h\033[2J\033[1;1H");
+    return 5;
+}
 
+
+int house() {
+    printf("\033[?25l\033[2J");
+    mciSendString(TEXT("setaudio Room-bgm volume to 80"), NULL, 0, NULL);
+    
+    mciSendString(TEXT("play Room-bgm repeat"), NULL, 128, NULL);
+    
+
+    int cameraLeftX = 0;
+    int cameraTopY = 0;
+    int selectX = 1;
+    int selectY = 1;
+
+    draw_sprite(35, 5, ROOM, 25, cameraLeftX, cameraTopY);
+    Move_Cursor(70, 30);
+    printf("--------------------------------------------------------------------------------");
+    while (1) {
+
+            if (selectX == 1 && selectY == 1) {
+                set_color(BG_COLOR_YELLOW);
+                Move_Cursor(85, 34);
+                printf("1.잠을 잔다 ");
+                printf(COLOR_RESET);
+
+                Move_Cursor(120, 34);
+                printf("2.피아노를 연주한다 ");
+                Move_Cursor(83, 36);
+                printf("3.밖으로 나간다 ");
+            }
+            if (selectX == 2 && selectY == 1) {
+                Move_Cursor(85, 34);
+                printf("1.잠을 잔다 ");
+
+                set_color(BG_COLOR_YELLOW);
+                Move_Cursor(120, 34);
+                printf("2.피아노를 연주한다 ");
+                printf(COLOR_RESET);
+                Move_Cursor(83, 36);
+                printf("3.밖으로 나간다 ");
+            }
+            if (selectX == 1 && selectY == 2) {
+                Move_Cursor(85, 34);
+                printf("1.잠을 잔다 ");
+                Move_Cursor(120, 34);
+                printf("2.피아노를 연주한다 ");
+                set_color(BG_COLOR_YELLOW);
+                Move_Cursor(83, 36);
+                printf("3.밖으로 나간다 ");
+                printf(COLOR_RESET);
+            }
+
+            if (selectY != 1) {
+                if (GetAsyncKeyState('W') & 0x8000)  selectY -= 1;
+            }
+
+            if (selectX != 1) {
+                if (GetAsyncKeyState('A') & 0x8000) selectX -= 1;
+            }
+            if (selectY != 2) {
+                if (GetAsyncKeyState('S') & 0x8000)  selectY += 1;
+            }
+            if (selectX != 2) {
+                if (GetAsyncKeyState('D') & 0x8000) selectX += 1;
+            }
+
+
+            //잠을 잔다 미구현 
+            /*
+            if (selectX == 1 && selectY == 1) {
+            if (GetAsyncKeyState(VK_RETURN) & 0x8000)
+
+            }*/
+
+            //피아노를 연주한다
+            
+            if (selectX == 2 && selectY == 1) {
+                if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
+                    mciSendString(TEXT("pause Room-bgm"), NULL, 128, NULL);
+                    mciSendString(TEXT("play piano"), NULL, 128, NULL);
+                    Sleep(4700);
+                    mciSendString(TEXT("seek piano to start"), NULL, 0, NULL);
+                    mciSendString(TEXT("resume Room-bgm"), NULL, 128, NULL);
+                }
+             }
+             //밖으로 나간다
+            if (selectX == 1 && selectY == 2) {
+                if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
+                    mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
+                    mciSendString(TEXT("seek Room-bgm to start"), NULL, 0, NULL);
+                    return 4;
+                }
+            }
+
+
+
+        }
+}
 int game_Start() {
 
     //Sleep(2000);
@@ -318,7 +453,7 @@ int game_Start() {
         // 머하지...
     //}
     system("cls");
-    return 4; // return 5;
+    return 5; // return 5;
 }
 
 int main_game()
@@ -514,8 +649,8 @@ int loading() {
     logo = fopen("logo.txt", "r");
     mciSendString(TEXT("open \"mp3s/nerujimaseyo.mp3\" type mpegvideo alias logo"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
-
-
+    mciSendString(TEXT("open \"mp3s/Room-bgm.mp3\" type mpegvideo alias Room-bgm"), NULL, 0, NULL);
+    mciSendString(TEXT("open \"mp3s/Piano Sound Effect.mp3\" type mpegvideo alias piano"), NULL, 0, NULL);
     // 파일 끝까지 한 줄씩 읽어서 출력
     while (fgets(line, sizeof(line), logo) != NULL) {
         printf("%s", line);
@@ -706,15 +841,6 @@ int render_Title() {
     }
 
     return 0;
-}
-
-int house() 
-{
-    int choice = 0;
-    system("cls");
-    Move_Cursor(40, 40);
-    printf("아늑한 집입니다.\n");
-    Sleep(50000 );
 }
 
 
