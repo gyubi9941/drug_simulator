@@ -220,7 +220,7 @@ int game_map() {
         // 0x8000 	이전에 누른 적이 없고 호출 시점에서 눌린 상태
         if (GetAsyncKeyState('A') & 0x8000)  playerX -= moveSpeed;
         if (GetAsyncKeyState('D') & 0x8000) playerX += moveSpeed;
-        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) break; // ESC 누르면 종료
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) return 7; // ESC 누르면 종료
 
         // 플레이어 월드 경계선 체크 (0 ~ WORLD-1)
         if (playerX < 0) playerX = 0;
@@ -339,40 +339,40 @@ int house() {
     int selectX = 1;
     int selectY = 1;
 
-    draw_sprite(35, 5, ROOM, 25, cameraLeftX, cameraTopY);
-    Move_Cursor(70, 30);
+    draw_sprite(20, 5, ROOM, 25, cameraLeftX, cameraTopY);
+    Move_Cursor(40, 30);
     printf("--------------------------------------------------------------------------------");
     while (1) {
 
             if (selectX == 1 && selectY == 1) {
                 set_color(BG_COLOR_YELLOW);
-                Move_Cursor(85, 34);
+                Move_Cursor(55, 34);
                 printf("1.잠을 잔다 ");
                 printf(COLOR_RESET);
 
-                Move_Cursor(120, 34);
+                Move_Cursor(90, 34);
                 printf("2.피아노를 연주한다 ");
-                Move_Cursor(83, 36);
+                Move_Cursor (53, 36);
                 printf("3.밖으로 나간다 ");
             }
             if (selectX == 2 && selectY == 1) {
-                Move_Cursor(85, 34);
+                Move_Cursor(55, 34);
                 printf("1.잠을 잔다 ");
 
                 set_color(BG_COLOR_YELLOW);
-                Move_Cursor(120, 34);
+                Move_Cursor(90, 34);
                 printf("2.피아노를 연주한다 ");
                 printf(COLOR_RESET);
-                Move_Cursor(83, 36);
+                Move_Cursor(53, 36);
                 printf("3.밖으로 나간다 ");
             }
             if (selectX == 1 && selectY == 2) {
-                Move_Cursor(85, 34);
+                Move_Cursor(55, 34);
                 printf("1.잠을 잔다 ");
-                Move_Cursor(120, 34);
+                Move_Cursor(90, 34);
                 printf("2.피아노를 연주한다 ");
                 set_color(BG_COLOR_YELLOW);
-                Move_Cursor(83, 36);
+                Move_Cursor(53, 36);
                 printf("3.밖으로 나간다 ");
                 printf(COLOR_RESET);
             }
