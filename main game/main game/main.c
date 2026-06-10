@@ -429,7 +429,7 @@ int game_Start() {
     mciSendString(TEXT("close myBgm"), NULL, 0, NULL);
     int statues01 = "";
 
-    system("cls");
+    system("cls");/*
     Move_Cursor(60, 25);
     printf("낮선 이곳에 이사오게된 당신\n");
     Sleep(1500);
@@ -442,12 +442,12 @@ int game_Start() {
     Sleep(1500);
     Move_Cursor(60, 26);
     printf("네?");
-    Sleep(3000);
+    Sleep(2000);
     system("cls");
     Move_Cursor(60, 25);
     printf("아무래도 잘못 개업한거 같다");
-
-    Sleep(4000);
+    */
+    Sleep(1000);
    // while (statues01 != 27) {
    //     statues01 = getch();
         // 머하지...
@@ -458,6 +458,15 @@ int game_Start() {
 
 int main_game()
 {
+    //엘레나 소환
+    FILE* elena;
+    char line[1024];
+    elena = fopen("txts\elena.txt", "r");
+
+    //코미소환
+    FILE* comi;
+    comi = fopen("txts\comi.txt", "r");
+
     int day = 1;
     int money = 10000;
     int satisfaction = 50;
@@ -472,22 +481,23 @@ int main_game()
     } Customer;
 
     srand(time(NULL));
-
+    
     while (day <= 10)
     {
         system("cls");
+        Move_Cursor(120, 0);
+        printf("=================================");
+        Move_Cursor(120, 1);
+        printf("        약국 시뮬레이터"); Move_Cursor(120, 2);
+        printf("================================="); Move_Cursor(120, 3);
+        printf("현재 날짜 : %d일차", day);  Move_Cursor(120, 4);
+        printf("돈 : %d원", money);  Move_Cursor(120, 5);
+        printf("만족도 : %d", satisfaction); Move_Cursor(120, 6);
+       // printf("\n");
 
-        printf("=================================\n");
-        printf("        약국 시뮬레이터\n");
-        printf("=================================\n");
-        printf("현재 날짜 : %d일차\n", day);
-        printf("돈 : %d원\n", money);
-        printf("만족도 : %d\n", satisfaction);
-        printf("\n");
+        printf("[대기중...]"); Move_Cursor(120, 8);
 
-        printf("[대기중...]\n");
-
-        printf("엔터를 누르면 손님 등장\n");
+        printf("엔터를 누르면 손님 등장"); Move_Cursor(120, 9);
 
         (void)getchar();
 
@@ -509,9 +519,9 @@ int main_game()
 
         Customer customer = customers[customerIndex];
 
-        printf("\n");
-        printf("손님 등장!\n");
-        printf("\n");
+        printf("\n"); Move_Cursor(120, 16);
+        printf("손님 등장!"); Move_Cursor(120, 17);
+        //printf("\n"); Move_Cursor(120, 18);
 
         char* goodLines[10] = // 긍정대사
         {
@@ -541,14 +551,14 @@ int main_game()
             "부정대사10"
         };
 
-        printf("%s\n", customer.dialogue);
+        printf("%s\n", customer.dialogue); Move_Cursor(120, 10);
 
         //--------------------------------
         // 약 선택
         //--------------------------------
 
-        printf("\n");
-        printf("판매할 약 이름 입력 : ");
+        printf("\n"); Move_Cursor(120, 20);
+        printf("판매할 약 이름 입력 : "); Move_Cursor(120, 21);
          
         scanf_s("%49s", medicine, (unsigned)_countof(medicine));
 
@@ -560,7 +570,8 @@ int main_game()
         {
             int line = rand() % 10;
 
-            printf("\n");
+           // printf("\n");
+            Move_Cursor(120, 30);
             printf("%s\n", goodLines[line]);
 
             money += 5000;
@@ -570,7 +581,8 @@ int main_game()
         {
             int line = rand() % 10;
 
-            printf("\n");
+            //printf("\n");
+            Move_Cursor(120, 31);
             printf("%s\n", badLines[line]);
 
             money -= 3000;
@@ -581,13 +593,16 @@ int main_game()
         // 결과
         //--------------------------------
 
-        printf("\n");
-        printf("현재 돈 : %d\n", money);
-        printf("현재 만족도 : %d\n", satisfaction);
+        //printf("\n"); 
+        Move_Cursor(120, 22);
+        printf("현재 돈 : %d", money); Move_Cursor(120, 23);
+        printf("현재 만족도 : %d", satisfaction); 
+        Move_Cursor(120, 24);
 
-        printf("\n손님이 떠났습니다.\n");
+        printf("손님이 떠났습니다."); 
+        Move_Cursor(120, 25);
 
-        printf("\n계속하려면 엔터...");
+        printf("계속하려면 엔터..."); //Move_Cursor(120, 26);
 
         (void)getchar();
         (void)getchar();
@@ -646,7 +661,7 @@ int loading() {
     char line[1024]; // 한 줄을 저장할 버퍼 (길이에 따라 조절 가능)
 
     // 파일 열기
-    logo = fopen("logo.txt", "r");
+    logo = fopen("muri.txt", "r");
     mciSendString(TEXT("open \"mp3s/nerujimaseyo.mp3\" type mpegvideo alias logo"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/Room-bgm.mp3\" type mpegvideo alias Room-bgm"), NULL, 0, NULL);
