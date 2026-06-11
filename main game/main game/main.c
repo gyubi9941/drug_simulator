@@ -3,6 +3,7 @@
 #include <windows.h> // windows.h 파일 가져오기
 #pragma execution_character_set("utf-8")
 #include <mmsystem.h>
+#include <locale.h>
 
 #pragma comment(lib, "winmm.lib") // MSVC 컴파일러용
 
@@ -147,8 +148,7 @@ int game_map() {
             }
         }
 
-        draw_sprite(1, 20, HOUSE, 9, cameraLeftX, cameraTopY);
-        draw_sprite(30, 20, PHARMACY, 9, cameraLeftX, cameraTopY);
+        
 
 
         while (1) {
@@ -262,13 +262,14 @@ int game_map() {
             }
             if (playerX == 29 && playerY == 27)
             {
-                int pharmasist_choice;
+                int pharmasist_choice = 0;
 
                 printf("\033[%d;1H", SCR_H + 5);
                 printf("약국에 들어가시겠습니까?\n");
                 printf("1. 예\n");
                 printf("2. 아니오\n");
                 printf("선택: ");
+                printf("");
 
                 if (scanf("%d", &pharmasist_choice) == 1)
                 {
@@ -279,6 +280,9 @@ int game_map() {
                     }
                 }
             }
+
+            draw_sprite(1, 20, HOUSE, 9, cameraLeftX, cameraTopY);
+            draw_sprite(30, 20, PHARMACY, 9, cameraLeftX, cameraTopY);
 
         }
 
@@ -323,6 +327,7 @@ int game_Start() {
 
 int main_game()
 {
+    setlocale(LC_ALL, "Korean");
     int day = 1;
     int money = 10000;
     int satisfaction = 50;
@@ -441,6 +446,9 @@ int main_game()
             money -= 3000;
             satisfaction -= 5;
         }
+
+        printf("입력값 = [%s]\n", medicine);
+        printf("정답값 = [%s]\n", customer.answer);
 
         //--------------------------------
         // 결과
