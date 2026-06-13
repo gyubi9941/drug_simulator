@@ -11,6 +11,9 @@
 #pragma execution_character_set("utf-8") // 하행 문자열들을 UTF-8 형식으로 인코딩후 저장하라는 전처리 명령
 #pragma comment(lib, "winmm.lib")        // MSVC 컴파일러용 라이브러리 링크
 
+
+//Edited By 현진 From 06-14 AM 04:24
+
 // 월드 및 스크린 크기 정의
 #define SCR_W 80  
 #define SCR_H 28  
