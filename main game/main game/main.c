@@ -1,8 +1,12 @@
 #define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h> // stdio.h 파일 가져오기
-#include <windows.h> // windows.h 파일 가져오기
+#include <stdio.h> 
+#include <windows.h> 
+#include <conio.h> 
+#include <time.h>
+#include <locale.h>
 #pragma execution_character_set("utf-8")
 #include <mmsystem.h>
+#include <string.h> 
 
 #pragma comment(lib, "winmm.lib") // MSVC 컴파일러용
 
@@ -27,12 +31,27 @@
 #define BG_COLOR_BrRED 101
 #define FONT_COLOR_WHITE 37
 
-// 픽셀 그리기 함수 (X축 2칸을 1칸으로 처리하여 정사각형 만들기)
-void draw_pixel(int x, int y, int r, int g, int b) {
-    if (x < 0 || x >= SCR_W || y < 0 || y >= SCR_H) return;
-    // 커서 이동 (1부터 시작하므로 +1) 후 RGB 배경색 지정 출력 후 리셋
-    printf("\033[%d;%dH\033[48;2;%d;%d;%dm  \033[0m", y + 1, (x * 2) + 1, r, g, b);
-}
+
+//기본적인 값
+typedef struct {
+    int day; //날이다
+    int money; //돈이다람쥐
+    int satisfaction; //이건모르겠다 현진아 설명해줘라
+} GameState;
+
+typedef struct {
+    char dialogue[200]; //나 영단어 모른다고 대충 질문같긴하다
+    char answer[50]; //대답
+} Demand;
+
+typedef struct {
+    char chara[256]; //캐릭터 버퍼 좀 늘렸다 그리고 경로 적어놓는곳이다
+    char fail_art_file[256];    // ★ 실패 시 띄울 아스키아트 파일 경로
+    char success_dialogue[3][200]; //캐릭터 고유 성공 대사 3개
+    char fail_dialogue[3][200];   // ★ 캐릭터 고유의 실패 대사 3개
+    Demand demands[3];       // 이 캐릭터가의 요구사항
+    int num_demands;         // 요구사항 개수 
+} CustomerProfile;
 
 
 
@@ -40,6 +59,39 @@ void Move_Cursor(int x, int y) {
 
     printf("\033[%d;%dH", y, x);
 }
+
+
+//캐릭터 불러와서 나중에 출력하는거인데 이거 파일이 안시코드로 되어서 출력할때 애니메이션처럼 촤라락 나오는데 감성있으니 넘어가죠?
+//뭐 길지만 이렇게라도 캐릭터를 불러와야지
+void draw_ascii_art(const char* filepath, int startX, int startY) {
+    FILE* fp = fopen(filepath, "r");
+    char line[4096];
+
+    if (fp) {
+        int yOffset = 0;
+        while (fgets(line, sizeof(line), fp) != NULL) {
+            // 엔터(\n) 문자가 있으면 그 자리를 널 문자(\0)로 바꿔서 잘라버리는 마법이야.
+            line[strcspn(line, "\n")] = 0;
+
+            Move_Cursor(startX, startY + yOffset);
+            printf("%s", line);
+            yOffset++;
+        }
+        fclose(fp);
+    }
+    else {
+        Move_Cursor(startX, startY);
+        printf("[!] 파일 로드 실패: %s", filepath);
+    }
+}
+
+// 픽셀 그리기 함수 (X축 2칸을 1칸으로 처리하여 정사각형 만들기)
+void draw_pixel(int x, int y, int r, int g, int b) {
+    if (x < 0 || x >= SCR_W || y < 0 || y >= SCR_H) return;
+    // 커서 이동 (1부터 시작하므로 +1) 후 RGB 배경색 지정 출력 후 리셋
+    printf("\033[%d;%dH\033[48;2;%d;%d;%dm  \033[0m", y + 1, (x * 2) + 1, r, g, b);
+}
+
 
 
 #define COLOR_RESET "\x1b[0m"
@@ -193,7 +245,7 @@ void draw_sprite(
     }
 }
 
-int game_map() {
+int game_map(GameState* state) {
     printf("\033[?25l\033[2J");
     // 플레이어 초기 월드 좌표 (월드 중심 근처)
     int playerX = 13.0;
@@ -301,9 +353,9 @@ int game_map() {
 
         //위치출력
         printf("\033[%d;1H", SCR_H + 2);
-        printf("================================");
+        printf("======================================================");
         printf("\033[%d;1H", SCR_H + 3);
-        printf("PLAYER POSITION : (%d, %d)     ", playerX, playerY);
+        printf("POSITION : (%d, %d) | DAY : %d | MONEY : %d원    ", playerX, playerY, state->day, state->money);
 
         if (playerX == 10)
         {
@@ -327,7 +379,7 @@ int game_map() {
 }
 
 
-int house() {
+int house(GameState* state) {
     printf("\033[?25l\033[2J");
     mciSendString(TEXT("setaudio Room-bgm volume to 80"), NULL, 0, NULL);
     
@@ -376,31 +428,50 @@ int house() {
                 printf("3.밖으로 나간다 ");
                 printf(COLOR_RESET);
             }
+            int input = _getch(); // 키보드 입력을 기다림 (여기서 화면 멈춤 효과까지 있음)
 
-            if (selectY != 1) {
-                if (GetAsyncKeyState('W') & 0x8000)  selectY -= 1;
+            // 한글이나 이상한 특수문자가 들어오면 버퍼 싹 비우고 무시!
+            if (input > 127 || input < 0) {
+                while (_kbhit()) _getch();
+                continue;
             }
 
-            if (selectX != 1) {
-                if (GetAsyncKeyState('A') & 0x8000) selectX -= 1;
-            }
-            if (selectY != 2) {
-                if (GetAsyncKeyState('S') & 0x8000)  selectY += 1;
-            }
-            if (selectX != 2) {
-                if (GetAsyncKeyState('D') & 0x8000) selectX += 1;
+            // 방향키(특수키) 방어
+            if (input == 224 || input == 0) {
+                input = _getch();
+                continue;
             }
 
+            // 깔끔하고 정확한 한 칸씩 이동! (대소문자 둘 다 지원해 주는 센스)
+            if ((input == 'w' || input == 'W') && selectY != 1) selectY -= 1;
+            if ((input == 'a' || input == 'A') && selectX != 1) selectX -= 1;
+            if ((input == 's' || input == 'S') && selectY != 2) selectY += 1;
+            if ((input == 'd' || input == 'D') && selectX != 2) selectX += 1;
 
-            //잠을 잔다 미구현 
-            /*
-            if (selectX == 1 && selectY == 1) {
-            if (GetAsyncKeyState(VK_RETURN) & 0x8000)
-
-            }*/
-
-            //피아노를 연주한다
-            
+            // 엔터키(13)를 눌렀을 때의 동작
+            if (input == 13) {
+                if (selectX == 1 && selectY == 1) {
+                    // 잠을 잔다 로직...
+                }
+                if (selectX == 2 && selectY == 1) {
+                    // 피아노 연주 로직...
+                }
+                if (selectX == 1 && selectY == 2) {
+                    // 밖으로 나간다 로직...
+                }
+            }
+            //드디어 마참네 잠을 잔다 구현! 
+            if (selectX == 1 && selectY == 1 && (GetAsyncKeyState(VK_RETURN) & 0x8000)) {
+                state->day += 1;
+                system("cls");
+                Move_Cursor(40, 15);
+                printf("지루한 하루가 지나고... [%d일차] 아침이 밝았습니다.", state->day);
+                Sleep(2000);
+                printf("\033[?25h\033[2J\033[1;1H");
+                mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
+                return 5; // 마을 맵으로 원위치
+            }
+        
             if (selectX == 2 && selectY == 1) {
                 if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
                     mciSendString(TEXT("pause Room-bgm"), NULL, 128, NULL);
@@ -456,165 +527,148 @@ int game_Start() {
     return 5; // return 5;
 }
 
-int main_game()
+int main_game(GameState* state)
 {
     //엘레나 소환
     FILE* elena;
     char line[1024];
-    elena = fopen("txts\elena.txt", "r");
+    elena = fopen("txts\elena.txt", "r"); if (elena) fclose(elena);
 
     //코미소환
     FILE* comi;
-    comi = fopen("txts\comi.txt", "r");
+    comi = fopen("txts\comi.txt", "r"); if (comi) fclose(comi);
 
-    int day = 1;
-    int money = 10000;
-    int satisfaction = 50;
-    int customer_count = 0;
-
+ 
     char medicine[50];
+    int customer_count = 0; //우선 손님 카운트로 하고 나중에 시간제 ㄱㄱ
+    //2를 높여서 캐릭터 늘리기
+    CustomerProfile characters[2] = {
+           {
+               "txts/elena.txt",  // 엘레나 이미지   (근데 규격 맞게 65로 다시 뽑아줘야해
+               "txts/elena.txt", //일단 실패 이미지 없으니 기본이미지
+               //txtsfails/elena_fail.txt            //실패이미지 넣어라 
+               {
+               "엘레나: 역시 맞출줄 알았어",
+               "엘레나: 역시나 00이야"
+               "엘레나: 대단하군",
+               },
 
-    typedef struct
-    {
-        char dialogue[200];
-        char answer[50];
-    } Customer;
+               {
+               "엘레나: 히익 니녀석 기초적인 화학식도 모르는거냐?"
+               "엘레나: 으앙! 이게 아니잖아! 배가 더 아파졌어! 바보 명의!", // ★ 고유 실패 대사
+               "엘레나: 하 니녀석 모나티엄에 출입금지시켜버린다"
+                },
 
+
+               {
+                   {"엘레나: 머리가 아파!빵을 너무 많이 먹었나 ? 달콤하고 하얀 알약 줘!", "타이레놀"},
+                   {"엘레나: 배가 고파서 돌을 씹어먹었더니 배탈이 났어... 소화제 줘!", "소화제"},
+                   {"엘레나: 넘어져서 무릎이 까졌어! 빨간약 발라줘!", "빨간약"}
+               },
+               3 // 엘레나의 요구사항 종류는 3개
+           },
+           {
+               "txts/comi.txt",   // 코미 이미지
+               "txts/comi.txt",  //일단 코미도 기본 나중에 페일 추가해라
+        {"코미: 후아암 역시 00이야",
+         "코미: 오늘은 편하게 잘 수 있겠구나",
+        "코미: 고마워 00"},
+
+                {
+               "코미: 이게뭐야! 이런 약사는 빨리 망해야해!",
+               "코미: 느아앙 너 뭘 주는거야!",
+               "코미: 오늘 낮잠은 글렀네"
+                },
+               {
+                   {"코미: 잠이 안 온다구... 포션 같은 거 없어?", "포션"},
+                   {"코미: 눈이 침침해... 인공눈물 줘...", "인공눈물"},
+                   {"코미: 쿨럭쿨럭... 감기 걸린 것 같아. 감기약 줘.", "감기약"}
+               },
+               3 // 코미의 요구사항 종류는 3개
+           }
+    };
     srand(time(NULL));
     
-    while (day <= 10)
-    {
+
+    //지금 이거 공용루트 말고 개별루트로 바꿔야하는데 오늘은 일단 여기까지 하고 커밋할께 (허규빈 2026-6-13)
+    char* goodLines[3] = { "오! 머리가 안 아파!", "역시 명의로구나.", "최고야!" }; //정답
+    char* badLines[3] = { "으윽, 배가 더 아프잖아!", "잘못 준 것 같은데...", "돌팔이 녀석!" }; //이 왜(일본ㅋㅋ)의 것
+
+    while (customer_count < 3) { // 하루에 손님 3명씩 받도록 내부 제어 루프 구성
         system("cls");
-        Move_Cursor(120, 0);
-        printf("=================================");
-        Move_Cursor(120, 1);
-        printf("        약국 시뮬레이터"); Move_Cursor(120, 2);
-        printf("================================="); Move_Cursor(120, 3);
-        printf("현재 날짜 : %d일차", day);  Move_Cursor(120, 4);
-        printf("돈 : %d원", money);  Move_Cursor(120, 5);
-        printf("만족도 : %d", satisfaction); Move_Cursor(120, 6);
-       // printf("\n");
+        Move_Cursor(85, 5);  printf("=================================");
+        Move_Cursor(85, 6);  printf("       엘리아스 약국 영업중      ");
+        Move_Cursor(85, 7);  printf("=================================");
+        Move_Cursor(85, 9);  printf("현재 날짜 : %d일차", state->day);
+        Move_Cursor(85, 10); printf("보유 자금 : %d원", state->money);
+        Move_Cursor(85, 11); printf("마을 만족도 : %d / 100", state->satisfaction);
 
-        printf("[대기중...]"); Move_Cursor(120, 8);
+        Move_Cursor(85, 14); printf("[ 대 기 중 . . . ]");
+        Move_Cursor(85, 15); printf("엔터를 누르면 손님이 들어옵니다.");
 
-        printf("엔터를 누르면 손님 등장"); Move_Cursor(120, 9);
-
+        setbuf(stdin, NULL);
         (void)getchar();
 
-        Customer customers[10] =
-        {
-            {"손님1 대사", "약1"},
-            {"손님2 대사", "약2"},
-            {"손님3 대사", "약3"},
-            {"손님4 대사", "약4"},
-            {"손님5 대사", "약5"},
-            {"손님6 대사", "약6"},
-            {"손님7 대사", "약7"},
-            {"손님8 대사", "약8"},
-            {"손님9 대사", "약9"},
-            {"손님10 대사", "약10"}
-        };
+        // ★ 집중해! 여기서 손님과 요구사항을 둘 다 뽑는 거야 ★
+        int customerIndex = rand() % 2;
+        CustomerProfile customer = characters[customerIndex];
 
-        int customerIndex = rand() % 10;
+        // 방금 뽑은 손님의 요구사항 중 하나를 랜덤으로 뽑아서 currentDemand에 저장!
+        int demandIndex = rand() % customer.num_demands;
+        Demand currentDemand = customer.demands[demandIndex];
 
-        Customer customer = customers[customerIndex];
+        system("cls"); // 화면 리프레시
 
-        printf("\n"); Move_Cursor(120, 16);
-        printf("손님 등장!"); Move_Cursor(120, 17);
-        //printf("\n"); Move_Cursor(120, 18);
+        // chara가 아니라 art_file이야! 
+        draw_ascii_art(customer.chara, 5, 0);
+        printf(COLOR_RESET); // 색상 초기화
+        Sleep(1000); // 1초 대기 연출
 
-        char* goodLines[10] = // 긍정대사
-        {
-            "긍정대사1",
-            "긍정대사2",
-            "긍정대사3",
-            "긍정대사4",
-            "긍정대사5",
-            "긍정대사6",
-            "긍정대사7",
-            "긍정대사8",
-            "긍정대사9",
-            "긍정대사10"
-        };
+        // 지워진 UI 다시 출력하기
+        Move_Cursor(85, 5);  printf("=================================");
+        Move_Cursor(85, 6);  printf("       엘리아스 약국 영업중      ");
+        Move_Cursor(85, 7);  printf("=================================");
+        Move_Cursor(85, 9);  printf("현재 날짜 : %d일차", state->day);
+        Move_Cursor(85, 10); printf("보유 자금 : %d원", state->money);
+        Move_Cursor(85, 11); printf("마을 만족도 : %d / 100", state->satisfaction);
 
-        char* badLines[10] = //부정대사
-        {
-            "부정대사1",
-            "부정대사2",
-            "부정대사3",
-            "부정대사4",
-            "부정대사5",
-            "부정대사6",
-            "부정대사7",
-            "부정대사8",
-            "부정대사9",
-            "부정대사10"
-        };
+        Move_Cursor(85, 14); set_color(BG_COLOR_YELLOW); printf("★ 손님 입장 ★"); printf(COLOR_RESET);
 
-        printf("%s\n", customer.dialogue); Move_Cursor(120, 10);
+        // 아까 위에서 제대로 만든 currentDemand에서 대사를 가져옴
+        Move_Cursor(85, 16); printf("대사: %s", currentDemand.dialogue);
 
-        //--------------------------------
-        // 약 선택
-        //--------------------------------
-
-        printf("\n"); Move_Cursor(120, 20);
-        printf("판매할 약 이름 입력 : "); Move_Cursor(120, 21);
-         
+        Move_Cursor(85, 19); printf("판매할 약 입력: ");
+        setbuf(stdin, NULL);
         scanf_s("%49s", medicine, (unsigned)_countof(medicine));
 
-        //--------------------------------
-        // 판정
-        //--------------------------------
-
-        if (strcmp(medicine, customer.answer) == 0)
-        {
-            int line = rand() % 10;
-
-           // printf("\n");
-            Move_Cursor(120, 30);
-            printf("%s\n", goodLines[line]);
-
-            money += 5000;
-            satisfaction += 5;
+        // 정답 비교도 currentDemand.answer로!
+        if (strcmp(medicine, currentDemand.answer) == 0) {
+            Move_Cursor(85, 21); set_color(BG_COLOR_YELLOW);
+            printf("%s", goodLines[rand() % 3]); printf(COLOR_RESET);
+            state->money += 5000;
+            state->satisfaction += 5;
         }
-        else
-        {
-            int line = rand() % 10;
-
-            //printf("\n");
-            Move_Cursor(120, 31);
-            printf("%s\n", badLines[line]);
-
-            money -= 3000;
-            satisfaction -= 5;
+        else {
+            Move_Cursor(85, 21); set_color(BG_COLOR_BrRED);
+            printf("%s", badLines[rand() % 3]); printf(COLOR_RESET);
+            state->money -= 3000;
+            state->satisfaction -= 5;
         }
 
-        //--------------------------------
-        // 결과
-        //--------------------------------
-
-        //printf("\n"); 
-        Move_Cursor(120, 22);
-        printf("현재 돈 : %d", money); Move_Cursor(120, 23);
-        printf("현재 만족도 : %d", satisfaction); 
-        Move_Cursor(120, 24);
-
-        printf("손님이 떠났습니다."); 
-        Move_Cursor(120, 25);
-
-        printf("계속하려면 엔터..."); //Move_Cursor(120, 26);
-
+        Move_Cursor(85, 24); printf("손님이 떠났습니다. 다음으로 가려면 엔터...");
+        setbuf(stdin, NULL);
         (void)getchar();
-        (void)getchar();
-
 
         customer_count++;
-
-        if (customer_count == 4)
-        {
-            day++;
-        }
     }
+
+    // 영업이 끝나면 하루 마감 후 자동으로 마을로 컴백
+    state->day += 1;
+    system("cls");
+    Move_Cursor(40, 15);
+    printf("오늘 영업을 마감합니다. 밤이 깊었으니 집으로 돌아갑시다.");
+    Sleep(2000);
+    return 5;
 }
 
 int credit_Scr() {
@@ -638,7 +692,7 @@ int credit_Scr() {
     Move_Cursor(50, 23);
     printf("돌아가시려면 esc키를 누르십시오");
     while (statues01 != 27) {
-        statues01 = getch();
+        statues01 = _getch();
         // 머하지...
     }
     system("cls");
@@ -649,11 +703,11 @@ int loading() {
     //게임 로고 등장
 
     system("cls");
-    Move_Cursor(10, 5);
-    printf("본 게임은 전체화면으로 플레이하는 것을 전제로 제작 되었습니다");
-    Move_Cursor(10, 6);
-    printf("전체화면으로 전환해 주세요");
-    Sleep(4000);
+    Move_Cursor(10, 5); printf("본 게임은 전체화면으로 플레이하는 것을 전제로 제작되었습니다 F11로 전체화면으로 전환해주시길 바랍니다.");
+    Move_Cursor(10, 5); printf("또한 선택창 이동은 영문 약 이름 적기는 한글을 사용합니다.");
+    Move_Cursor(10, 7); printf("이를 이해 하였으면 엔터 키를 눌러주십시오.");
+    setbuf(stdin, NULL);
+    (void)getchar();
 
     system("cls");
 
@@ -661,7 +715,7 @@ int loading() {
     char line[1024]; // 한 줄을 저장할 버퍼 (길이에 따라 조절 가능)
 
     // 파일 열기
-    logo = fopen("muri.txt", "r");
+    logo = fopen("murimuri.txt", "r");
     mciSendString(TEXT("open \"mp3s/nerujimaseyo.mp3\" type mpegvideo alias logo"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/Room-bgm.mp3\" type mpegvideo alias Room-bgm"), NULL, 0, NULL);
@@ -792,8 +846,17 @@ int render_Title() {
         //Move_Cursor((garo + 10) / 2, ));
         //printf("<==");
 
-        input = getch();
+        input = _getch();
 
+        // 만약 들어온 값이 일반적인 영어/숫자 아스키코드(0~127) 범위를 벗어난다면? (즉, 한글 등 다중 바이트)
+        if (input > 127 || input < 0) {
+            // 키보드 버퍼에 남아있는 나머지 한글 찌꺼기를 싹 다 빨아들여서 버림
+            while (_kbhit()) {
+                _getch();
+            }
+            // 밑에 있는 코드를 무시하고 루프 처음으로 돌아감. (system("cls") 연쇄 실행 완벽 방지!)
+            continue;
+        }
         switch (input) {
         case 'w':
             if (select > 1) {
@@ -861,8 +924,11 @@ int render_Title() {
 
 int main() {
     int selec_Op = -1;
-    SetConsoleOutputCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8); //출력  utf-8
+    SetConsoleCP(CP_UTF8);//입력 utf-8
 
+    setlocale(LC_ALL, ".UTF8");
+    GameState player = { 1, 10000, 50 };
 
     while (1)
     {
@@ -882,13 +948,13 @@ int main() {
             selec_Op = credit_Scr();
             break;
         case 4:
-            selec_Op = game_map();
+            selec_Op = game_map(&player); //얘네 포인터 옮겨줘라
             break;
         case 5:
-            selec_Op = house();
+            selec_Op = house(&player);
             break;
         case 6:
-            selec_Op = main_game();
+            selec_Op = main_game(&player);
             break;
         case 7:
             goto exit;
