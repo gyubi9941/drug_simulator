@@ -11,6 +11,8 @@
 #pragma comment(lib, "winmm.lib") // MSVC 컴파일러용
 
 
+//Edited By 현진 From 06-14 AM 00:00
+
 // 월드 좌표 지정
 #define SCR_W 80  // X좌표 2칸이 1칸이므로 80 / 2 = 40
 #define SCR_H 28  // 하단 UI 2줄을 제외한 30 - 2 = 28
@@ -36,11 +38,11 @@
 typedef struct {
     int day; //날이다
     int money; //돈이다람쥐
-    int satisfaction; //이건모르겠다 현진아 설명해줘라
+    int satisfaction; // 만족도
 } GameState;
 
 typedef struct {
-    char dialogue[200]; //나 영단어 모른다고 대충 질문같긴하다
+    char dialogue[200]; //다이얼로그 배열 (대화 넣을 상자라 생각하도록)
     char answer[50]; //대답
 } Demand;
 
