@@ -11,7 +11,7 @@
 #pragma comment(lib, "winmm.lib") // MSVC 컴파일러용
 
 
-//Edited By 현진 From 06-14 AM 00:00
+//LAST UPDATE: 06-13 PM 08:?? by 허규빈 | Edited By 현진 From 06-14 AM 4:24
 
 // 월드 좌표 지정
 #define SCR_W 80  // X좌표 2칸이 1칸이므로 80 / 2 = 40
@@ -978,6 +978,5 @@ exit:
         goto gameBack;
     }
 }
-
 
 
