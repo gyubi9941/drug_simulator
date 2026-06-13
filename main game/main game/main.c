@@ -382,9 +382,9 @@ int game_map(GameState* state) {
 int house(GameState* state) {
     printf("\033[?25l\033[2J");
     mciSendString(TEXT("setaudio Room-bgm volume to 80"), NULL, 0, NULL);
-    
+
     mciSendString(TEXT("play Room-bgm repeat"), NULL, 128, NULL);
-    
+
 
     int cameraLeftX = 0;
     int cameraTopY = 0;
@@ -396,103 +396,103 @@ int house(GameState* state) {
     printf("--------------------------------------------------------------------------------");
     while (1) {
 
-            if (selectX == 1 && selectY == 1) {
-                set_color(BG_COLOR_YELLOW);
-                Move_Cursor(55, 34);
-                printf("1.잠을 잔다 ");
-                printf(COLOR_RESET);
+        if (selectX == 1 && selectY == 1) {
+            set_color(BG_COLOR_YELLOW);
+            Move_Cursor(55, 34);
+            printf("1.잠을 잔다 ");
+            printf(COLOR_RESET);
 
-                Move_Cursor(90, 34);
-                printf("2.피아노를 연주한다 ");
-                Move_Cursor (53, 36);
-                printf("3.밖으로 나간다 ");
-            }
-            if (selectX == 2 && selectY == 1) {
-                Move_Cursor(55, 34);
-                printf("1.잠을 잔다 ");
-
-                set_color(BG_COLOR_YELLOW);
-                Move_Cursor(90, 34);
-                printf("2.피아노를 연주한다 ");
-                printf(COLOR_RESET);
-                Move_Cursor(53, 36);
-                printf("3.밖으로 나간다 ");
-            }
-            if (selectX == 1 && selectY == 2) {
-                Move_Cursor(55, 34);
-                printf("1.잠을 잔다 ");
-                Move_Cursor(90, 34);
-                printf("2.피아노를 연주한다 ");
-                set_color(BG_COLOR_YELLOW);
-                Move_Cursor(53, 36);
-                printf("3.밖으로 나간다 ");
-                printf(COLOR_RESET);
-            }
-            int input = _getch(); // 키보드 입력을 기다림 (여기서 화면 멈춤 효과까지 있음)
-
-            // 한글이나 이상한 특수문자가 들어오면 버퍼 싹 비우고 무시!
-            if (input > 127 || input < 0) {
-                while (_kbhit()) _getch();
-                continue;
-            }
-
-            // 방향키(특수키) 방어
-            if (input == 224 || input == 0) {
-                input = _getch();
-                continue;
-            }
-
-            // 깔끔하고 정확한 한 칸씩 이동! (대소문자 둘 다 지원해 주는 센스)
-            if ((input == 'w' || input == 'W') && selectY != 1) selectY -= 1;
-            if ((input == 'a' || input == 'A') && selectX != 1) selectX -= 1;
-            if ((input == 's' || input == 'S') && selectY != 2) selectY += 1;
-            if ((input == 'd' || input == 'D') && selectX != 2) selectX += 1;
-
-            // 엔터키(13)를 눌렀을 때의 동작
-            if (input == 13) {
-                if (selectX == 1 && selectY == 1) {
-                    // 잠을 잔다 로직...
-                }
-                if (selectX == 2 && selectY == 1) {
-                    // 피아노 연주 로직...
-                }
-                if (selectX == 1 && selectY == 2) {
-                    // 밖으로 나간다 로직...
-                }
-            }
-            //드디어 마참네 잠을 잔다 구현! 
-            if (selectX == 1 && selectY == 1 && (GetAsyncKeyState(VK_RETURN) & 0x8000)) {
-                state->day += 1;
-                system("cls");
-                Move_Cursor(40, 15);
-                printf("지루한 하루가 지나고... [%d일차] 아침이 밝았습니다.", state->day);
-                Sleep(2000);
-                printf("\033[?25h\033[2J\033[1;1H");
-                mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
-                return 5; // 마을 맵으로 원위치
-            }
-        
-            if (selectX == 2 && selectY == 1) {
-                if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
-                    mciSendString(TEXT("pause Room-bgm"), NULL, 128, NULL);
-                    mciSendString(TEXT("play piano"), NULL, 128, NULL);
-                    Sleep(4700);
-                    mciSendString(TEXT("seek piano to start"), NULL, 0, NULL);
-                    mciSendString(TEXT("resume Room-bgm"), NULL, 128, NULL);
-                }
-             }
-             //밖으로 나간다
-            if (selectX == 1 && selectY == 2) {
-                if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
-                    mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
-                    mciSendString(TEXT("seek Room-bgm to start"), NULL, 0, NULL);
-                    return 4;
-                }
-            }
-
-
-
+            Move_Cursor(90, 34);
+            printf("2.피아노를 연주한다 ");
+            Move_Cursor(53, 36);
+            printf("3.밖으로 나간다 ");
         }
+        if (selectX == 2 && selectY == 1) {
+            Move_Cursor(55, 34);
+            printf("1.잠을 잔다 ");
+
+            set_color(BG_COLOR_YELLOW);
+            Move_Cursor(90, 34);
+            printf("2.피아노를 연주한다 ");
+            printf(COLOR_RESET);
+            Move_Cursor(53, 36);
+            printf("3.밖으로 나간다 ");
+        }
+        if (selectX == 1 && selectY == 2) {
+            Move_Cursor(55, 34);
+            printf("1.잠을 잔다 ");
+            Move_Cursor(90, 34);
+            printf("2.피아노를 연주한다 ");
+            set_color(BG_COLOR_YELLOW);
+            Move_Cursor(53, 36);
+            printf("3.밖으로 나간다 ");
+            printf(COLOR_RESET);
+        }
+        int input = _getch(); // 키보드 입력을 기다림 (여기서 화면 멈춤 효과까지 있음)
+
+        // 한글이나 이상한 특수문자가 들어오면 버퍼 싹 비우고 무시!
+        if (input > 127 || input < 0) {
+            while (_kbhit()) _getch();
+            continue;
+        }
+
+        // 방향키(특수키) 방어
+        if (input == 224 || input == 0) {
+            input = _getch();
+            continue;
+        }
+
+        // 깔끔하고 정확한 한 칸씩 이동! (대소문자 둘 다 지원해 주는 센스)
+        if ((input == 'w' || input == 'W') && selectY != 1) selectY -= 1;
+        if ((input == 'a' || input == 'A') && selectX != 1) selectX -= 1;
+        if ((input == 's' || input == 'S') && selectY != 2) selectY += 1;
+        if ((input == 'd' || input == 'D') && selectX != 2) selectX += 1;
+
+        // 엔터키(13)를 눌렀을 때의 동작
+        if (input == 13) {
+            if (selectX == 1 && selectY == 1) {
+                // 잠을 잔다 로직...
+            }
+            if (selectX == 2 && selectY == 1) {
+                // 피아노 연주 로직...
+            }
+            if (selectX == 1 && selectY == 2) {
+                // 밖으로 나간다 로직...
+            }
+        }
+        //드디어 마참네 잠을 잔다 구현! 
+        if (selectX == 1 && selectY == 1 && (GetAsyncKeyState(VK_RETURN) & 0x8000)) {
+            state->day += 1;
+            system("cls");
+            Move_Cursor(40, 15);
+            printf("지루한 하루가 지나고... [%d일차] 아침이 밝았습니다.", state->day);
+            Sleep(2000);
+            printf("\033[?25h\033[2J\033[1;1H");
+            mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
+            return 5; // 마을 맵으로 원위치
+        }
+
+        if (selectX == 2 && selectY == 1) {
+            if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
+                mciSendString(TEXT("pause Room-bgm"), NULL, 128, NULL);
+                mciSendString(TEXT("play piano"), NULL, 128, NULL);
+                Sleep(4700);
+                mciSendString(TEXT("seek piano to start"), NULL, 0, NULL);
+                mciSendString(TEXT("resume Room-bgm"), NULL, 128, NULL);
+            }
+        }
+        //밖으로 나간다
+        if (selectX == 1 && selectY == 2) {
+            if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
+                mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
+                mciSendString(TEXT("seek Room-bgm to start"), NULL, 0, NULL);
+                return 4;
+            }
+        }
+
+
+
+    }
 }
 int game_Start() {
 
@@ -519,10 +519,10 @@ int game_Start() {
     printf("아무래도 잘못 개업한거 같다");
     */
     Sleep(1000);
-   // while (statues01 != 27) {
-   //     statues01 = getch();
-        // 머하지...
-    //}
+    // while (statues01 != 27) {
+    //     statues01 = getch();
+         // 머하지...
+     //}
     system("cls");
     return 5; // return 5;
 }
@@ -538,7 +538,7 @@ int main_game(GameState* state)
     FILE* comi;
     comi = fopen("txts\comi.txt", "r"); if (comi) fclose(comi);
 
- 
+
     char medicine[50];
     int customer_count = 0; //우선 손님 카운트로 하고 나중에 시간제 ㄱㄱ
     //2를 높여서 캐릭터 늘리기
@@ -588,7 +588,7 @@ int main_game(GameState* state)
            }
     };
     srand(time(NULL));
-    
+
 
     //지금 이거 공용루트 말고 개별루트로 바꿔야하는데 오늘은 일단 여기까지 하고 커밋할께 (허규빈 2026-6-13)
     char* goodLines[3] = { "오! 머리가 안 아파!", "역시 명의로구나.", "최고야!" }; //정답
