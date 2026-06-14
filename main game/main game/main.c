@@ -1007,6 +1007,7 @@ int main_game(GameState* state) {
 
         while (1) {
 
+
             printf("\033[?25h");
 
             int elapsed_time = (int)(time(NULL) - start_time);
@@ -1653,19 +1654,20 @@ int endings(GameState* state) {
 
         Move_Cursor(102, 3);
         printf("돈이 부족하구나 죽어버리렴");
-        Move_Cursor(18, 5);
+        Move_Cursor(102, 5);
         printf("건물주 : 이 은 석");
+        Move_Cursor(102, 7);
+        printf("잠시 후 타이틀 화면으로 돌아갑니다");
         Sleep(10000);
         
-        return -1;
+        money = 10000;
+        return 0;
     }
 
 
     if (money > 120000 && money < 150000) {
         system("cls");
-        printf("약국의 월세를 냈다 약국을 이어가자");
 
-        Move_Cursor(102, 3);
         if (drug) {
             while (fgets(drug1, sizeof(drug1), drug) != NULL) {
                 printf("%s", drug1);
@@ -1673,8 +1675,15 @@ int endings(GameState* state) {
             fclose(drug);
         }
 
+        Move_Cursor(102, 3);
+        printf("약국의 월세를 냈다 약국을 이어가자");
+
+        Move_Cursor(102, 5);
+        printf("잠시 후 타이틀 화면으로 돌아갑니다");
         Sleep(10000);
-        return -1;
+
+        money = 10000;
+        return 0;
     }
 
 
@@ -1682,20 +1691,22 @@ int endings(GameState* state) {
         system("cls");
 
 
-        Move_Cursor(70, 33);
-        printf("최고의 약국이 되었다");
         if (miku) {
             while (fgets(miku1, sizeof(miku1), miku) != NULL) {
                 printf("%s", miku1);
             }
             fclose(miku);
         }
+        Move_Cursor(70, 33);
+        printf("최고의 약국이 되었다");
+        Move_Cursor(70, 34);
+        printf("잠시 후 타이틀 화면으로 돌아갑니다");
 
 
         
         Sleep(10000);
-
-        return -1;
+        money = 10000;
+        return 0;
     }
 
 
@@ -1718,51 +1729,71 @@ int main() {
     Force_English_Mode();
 
 
-
     GameState player = { 1, 10000, 50, 0, {3, 3, 3, 3, 3, 3, 3} };
 
+    int old_day = player.day;
 
     while (1) {
-        
+
         if (player.day >= 11 && selec_Op != 8) {
             selec_Op = 8;
         }
 
-        switch (selec_Op) {
-        case -1: selec_Op = loading();     break;
-        case 0:  selec_Op = render_Title(); break;
-        case 1:  selec_Op = game_Start();    break;
-        case 3:  selec_Op = credit_Scr();   selec_Op = 0; break; // 크레딧 보고 타이틀로 복귀
-        case 4:  selec_Op = game_map(&player); break;
-        case 5:  selec_Op = house(&player);    break;
-        case 6:  selec_Op = main_game(&player); break;
-        case 7:  // [종료 확인 단계] 게임 종료 요청(7)이 들어왔을 때의 처리
-            system("cls");
-            printf("게임을 종료하시겠습니까?\n");
-            printf("취소하려면 [ ESC 키 ]를, 종료하려면 [ 엔터 키 ]를 입력하십시오\n");
 
-            while (1) {
-                int exit_key = _getch();
+       
+        while (1) {
 
-                if (exit_key == 13) { // 엔터 키: 완전 종료
-                    Move_Cursor(0, 21);
-                    printf("프로그램을 종료합니다.\n");
-                    return 0; // 프로그램 완전 종료
+            // ==============================================================
+            // ★ 날짜가 바뀌었을 때(잠을 자고 일어났을 때) 딱 한 번만 엔딩 검사!
+            // ==============================================================
+            if (old_day != player.day) {
+
+                // 11일차 아침이 밝았거나, 날이 밝았는데 수중에 돈이 0원 이하라면 엔딩으로 간다!
+                if (player.day >= 11 || player.money <= 0) {
+                    selec_Op = 8;
                 }
 
-                if (exit_key == 27) { // ESC 키: 종료 취소 후 이전(타이틀) 화면으로 복귀
-                    selec_Op = 0; // 타이틀 화면 코드로 변경
-                    break;        // 내부 키 입력 대기 루프를 탈출
-                }
+                // 검사가 끝났으면 기억 장치를 오늘 날짜로 다시 갱신해준다.
+                old_day = player.day;
             }
-            // 내부 루프를 탈출하면 switch문을 빠져나가, 외곽의 while(1) 루프에 의해 
-            // `selec_Op = 0`(타이틀 화면)인 상태로 자연스럽게 되돌아감.
-            break;
-         case 8: selec_Op = endings(&player); break; 
-         case 9: selec_Op = game_map_night(&player); break;
-         case 10: selec_Op = drug_store(&player); break;
-        }
-    }
+            // ==================
 
-    return 0;
+            switch (selec_Op) {
+            case -1: selec_Op = loading();     break;
+            case 0:  selec_Op = render_Title(); break;
+            case 1:  selec_Op = game_Start();    break;
+            case 3:  selec_Op = credit_Scr();   selec_Op = 0; break; // 크레딧 보고 타이틀로 복귀
+            case 4:  selec_Op = game_map(&player); break;
+            case 5:  selec_Op = house(&player);    break;
+            case 6:  selec_Op = main_game(&player); break;
+            case 7:  // [종료 확인 단계] 게임 종료 요청(7)이 들어왔을 때의 처리
+                system("cls");
+                printf("게임을 종료하시겠습니까?\n");
+                printf("취소하려면 [ ESC 키 ]를, 종료하려면 [ 엔터 키 ]를 입력하십시오\n");
+
+                while (1) {
+                    int exit_key = _getch();
+
+                    if (exit_key == 13) { // 엔터 키: 완전 종료
+                        Move_Cursor(0, 21);
+                        printf("프로그램을 종료합니다.\n");
+                        return 0; // 프로그램 완전 종료
+                    }
+
+                    if (exit_key == 27) { // ESC 키: 종료 취소 후 이전(타이틀) 화면으로 복귀
+                        selec_Op = 0; // 타이틀 화면 코드로 변경
+                        break;        // 내부 키 입력 대기 루프를 탈출
+                    }
+                }
+                // 내부 루프를 탈출하면 switch문을 빠져나가, 외곽의 while(1) 루프에 의해 
+                // `selec_Op = 0`(타이틀 화면)인 상태로 자연스럽게 되돌아감.
+                break;
+            case 8: selec_Op = endings(&player); break;
+            case 9: selec_Op = game_map_night(&player); break;
+            case 10: selec_Op = drug_store(&player); break;
+            }
+        }
+
+        return 0;
+    }
 }

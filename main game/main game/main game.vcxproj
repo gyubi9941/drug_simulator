@@ -127,6 +127,15 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/utf-8 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
   </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resource.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="C:\Users\heogy\Downloads\uros.ico" />
+    <Image Include="C:\Users\heogy\OneDrive\바탕 화면\uros.png" />
+    <Image Include="icon1.ico" />
+    <Image Include="icon2.ico" />
+  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
