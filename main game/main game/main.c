@@ -8,14 +8,13 @@
 #include <locale.h>
 #include <mmsystem.h>                    // 사운드 재생에 필요한 라이브러리 링크
 #include <string.h> 
-
+#include <stdlib.h>
 #pragma comment(lib, "imm32.lib")
 #pragma execution_character_set("utf-8") // 하행 문자열들을 UTF-8 형식으로 인코딩후 저장하라는 전처리 명령
 #pragma comment(lib, "winmm.lib")        // MSVC 컴파일러용 라이브러리 링크
 
 
 
-//Edited By 현진 From 06-14 AM 04:24
 
 // 월드 및 스크린 크기 정의
 #define SCR_W 80  
@@ -54,24 +53,24 @@ typedef struct {
 } Demand;
 
 typedef struct {
-    char chara[256];
-    char fail_art_file[512];
-    char success_chara[256];
+    char chara[256];         // 스탠딩 이미지
+    char fail_art_file[512]; // 실패 시 이미지
+    char success_chara[256]; // // 성공시
     char voice_file[256];
-    char success_voice[256];     // ★ 처방 성공 시 출력될 음성 경로
-    char fail_voice[256];        // ★ 처방 실패 시 출력될 음성 경로
+    char success_voice[256]; // ★ 처방 성공 시 출력될 음성 경로
+    char fail_voice[256];    // ★ 처방 실패 시 출력될 음성 경로
     Demand demands[3];
     int num_demands;
 } CustomerProfile;
 
 typedef struct {
-    char name[50]; // 약 이름
+    char name[50];      // 약 이름
     int sell_price;     // 약 가격
     int buy_price;
 } Medicine;
 
 
-// 구조체 선언들 밑에, 함수들 시작하기 전 빈 공간에 선언해!
+// 약 종류 및 가격 밸런스 설정
 Medicine stock[7] = {
     {"두통약", 1700, 500},
     {"소화제", 6500, 2300},
@@ -88,7 +87,9 @@ Medicine stock[7] = {
 void HideCursor() {
     CONSOLE_CURSOR_INFO cursorInfo = { 0, };
     cursorInfo.dwSize = 1;
-    cursorInfo.bVisible = FALSE; // 커서를 투명하게 만들어버림!
+    cursorInfo.bVisible = FALSE; // 커서를 투명하게 만들어버림
+
+    // 콘솔의 핸들(권한)을 얻어서 커서의 상태 갱신
     SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
 }
 
@@ -97,20 +98,18 @@ void Move_Cursor(int x, int y) {
     printf("\033[%d;%dH", y, x);
 }
 
-
+// 사전에 지정한 상수값 이용
 void set_color(int code) {
     printf("\x1b[%dm", code);
 }
 
-#include <stdlib.h> // atoi 함수 사용을 위해 필요
-
-// 헬레나님의 JIT 오디오 제어기 (동적 Sleep 탑재)
+// 함수를 통한 오디오 제어
 static void Play_Voice_Smart(const char* filepath, const char* alias, int need_wait) {
     char cmd[512];
     char length_str[128] = "0"; // 파일 길이를 받아올 문자열
     int duration = 0;
 
-    // 1. 낡은 채널 찌꺼기 청소
+    // 1. 낡은 채널 찌꺼기 청소 (기존에 재생된 오디오 제거)
     sprintf_s(cmd, sizeof(cmd), "close %s", alias);
     mciSendStringA(cmd, NULL, 0, NULL);
 
@@ -118,14 +117,14 @@ static void Play_Voice_Smart(const char* filepath, const char* alias, int need_w
     sprintf_s(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias %s", filepath, alias);
     mciSendStringA(cmd, NULL, 0, NULL);
 
-    // 3. 대기가 필요한 경우, 오디오 파일의 정확한 총 길이(밀리초)를 물어본다!
+    // 3. 대기가 필요한 경우, 오디오 파일의 정확한 총 길이(밀리초)를 요청
     if (need_wait == 1) {
         sprintf_s(cmd, sizeof(cmd), "status %s length", alias);
         mciSendStringA(cmd, length_str, sizeof(length_str), NULL);
         duration = atoi(length_str); // 문자를 정수(숫자)로 변환
     }
 
-    // 4. 프로그램 멈춤 현상을 유발하는 wait 없이 일단 부드럽게 재생!
+    // 4. 프로그램 멈춤 현상을 유발하는 wait 없이 일단 부드럽게 재생
     sprintf_s(cmd, sizeof(cmd), "play %s from 0", alias);
     mciSendStringA(cmd, NULL, 0, NULL);
 
@@ -144,12 +143,12 @@ void print_dialogue_wrapped(int startX, int startY, const char* text, int max_wi
 
     Move_Cursor(currentX, currentY);
     set_color(FONT_COLOR_BLACK); // 글자는 검은색
-    printf("\033[107m");         // 배경은 흰색 (말풍선 효과 시작!)
+    printf("\033[107m");         // 배경은 흰색 (말풍선 효과)
 
     while (text[i] != '\0') {
         // 1. 한글(2바이트)인지 확인 (C언어 콘솔에서 한글은 음수 값을 가짐)
         if (text[i] < 0) {
-            // 출력하면 지정한 너비를 뚫고 나갈 것 같으면 미리 개행 처리!
+            // 출력하면 지정한 너비를 뚫고 나갈 것 같으면 미리 개행 처리
             if (currentX - startX + 2 > max_width) {
                 printf("\033[0m"); // 이전 줄의 흰색 배경을 잠깐 끄고
                 currentY++;
@@ -408,7 +407,7 @@ int game_map(GameState* state) {
         Move_Cursor(1, SCR_H + 2);
         printf("======================================================");
         Move_Cursor(1, SCR_H + 3);
-        printf("POSITION : (%3d, %3d) | DAY : %d | MONEY : %d원    ", playerX, playerY, state->day, state->money);
+        printf("이동 : A == D | DAY : %d | MONEY : %d원    ", state->day, state->money);
 
         if (playerX <= 10) { // 집으로 입장 조건 완화
             printf("\033[?25h\033[2J\033[1;1H");
@@ -1270,7 +1269,7 @@ int credit_Scr() {
 
         if (key == 13) {
 
-
+            mciSendString(TEXT("stop myBgm"), NULL, 0, NULL);
             
             //system("cls");
             mciSendString(TEXT("open \"mp3s/hamjeong.mp3\" type mpegvideo alias esster"), NULL, 0, NULL);
@@ -1278,7 +1277,7 @@ int credit_Scr() {
             FILE* title = fopen("txts/title.txt", "r");
             char titles[1024];
             
-            mciSendString(TEXT("setaudio esster volume to 60"), NULL, 0, NULL);
+            mciSendString(TEXT("setaudio esster volume to 92"), NULL, 0, NULL);
             mciSendString(TEXT("play esster repeat"), NULL, 0, NULL);
 
             if (title) {
@@ -1346,7 +1345,7 @@ int loading() {
     mciSendString(TEXT("play logo repeat"), NULL, 0, NULL);
     mciSendString(TEXT("play logo wait"), NULL, 0, NULL);
     mciSendString(TEXT("setaudio myBgm volume to 100"), NULL, 0, NULL);
-    mciSendString(TEXT("play myBgm repeat"), NULL, 0, NULL);
+    
     mciSendString(TEXT("close logo"), NULL, 0, NULL);
 
     return 0;
@@ -1360,7 +1359,7 @@ int loading() {
 
 // 타이틀 화면 렌더링 함수 (가로/세로 동적 중앙 정렬)
 int render_Title() {
-
+    mciSendString(TEXT("play myBgm repeat"), NULL, 0, NULL);
 
 
     printf("\033[?25l\033[2J");
