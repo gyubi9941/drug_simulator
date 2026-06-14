@@ -368,12 +368,6 @@ int game_map(GameState* state) {
             if (oldPlayerY >= 0 && oldPlayerY < 28 && oldPlayerX >= 0 && oldPlayerX < 40) {
                 bg_char = SKY[oldPlayerY][oldPlayerX];
             }
-<<<<<<< HEAD
-
-            // 2. 만약 옛날 자리가 HOUSE(집) 영역이었다면 덮어쓰기
-            // 집은 (1, 19)부터 너비 11, 높이 8
-=======
->>>>>>> 4e228ec51e1c5ef57f64c38e0f37423a8763ea69
             if (oldPlayerX >= 1 && oldPlayerX < 1 + 11 && oldPlayerY >= 19 && oldPlayerY < 19 + 8) {
                 char hc = HOUSE[oldPlayerY - 19][oldPlayerX - 1];
                 if (hc != '.') bg_char = hc;
@@ -401,13 +395,7 @@ int game_map(GameState* state) {
         Move_Cursor(1, SCR_H + 3);
         printf("POSITION : (%3d, %3d) | DAY : %d | MONEY : %d원    ", playerX, playerY, state->day, state->money);
 
-<<<<<<< HEAD
-        if (playerX == 10)
-        {
-            //집 이동
-=======
         if (playerX <= 10) { // 집으로 입장 조건 완화
->>>>>>> 4e228ec51e1c5ef57f64c38e0f37423a8763ea69
             printf("\033[?25h\033[2J\033[1;1H");
             return 5;
         }
@@ -418,10 +406,6 @@ int game_map(GameState* state) {
             Sleep(1200);
             
             return 6;
-<<<<<<< HEAD
-
-=======
->>>>>>> 4e228ec51e1c5ef57f64c38e0f37423a8763ea69
         }
     }
 }
@@ -726,164 +710,9 @@ int game_Start() {
     return 5;
 }
 
-<<<<<<< HEAD
-
-int house() {
-    printf("\033[?25l\033[2J");
-    mciSendString(TEXT("setaudio Room-bgm volume to 80"), NULL, 0, NULL);
-
-    mciSendString(TEXT("play Room-bgm repeat"), NULL, 128, NULL);
-
-
-    int cameraLeftX = 0;
-    int cameraTopY = 0;
-    int selectX = 1;
-    int selectY = 1;
-
-    draw_sprite(20, 5, ROOM, 25, cameraLeftX, cameraTopY);
-    Move_Cursor(40, 30);
-    printf("--------------------------------------------------------------------------------");
-    while (1) {
-
-        if (selectX == 1 && selectY == 1) {
-            set_color(BG_COLOR_YELLOW);
-            Move_Cursor(55, 34);
-            printf("1.잠을 잔다 ");
-            printf(COLOR_RESET);
-
-            Move_Cursor(90, 34);
-            printf("2.피아노를 연주한다 ");
-            Move_Cursor(53, 36);
-            printf("3.밖으로 나간다 ");
-        }
-        if (selectX == 2 && selectY == 1) {
-            Move_Cursor(55, 34);
-            printf("1.잠을 잔다 ");
-
-            set_color(BG_COLOR_YELLOW);
-            Move_Cursor(90, 34);
-            printf("2.피아노를 연주한다 ");
-            printf(COLOR_RESET);
-            Move_Cursor(53, 36);
-            printf("3.밖으로 나간다 ");
-        }
-        if (selectX == 1 && selectY == 2) {
-            Move_Cursor(55, 34);
-            printf("1.잠을 잔다 ");
-            Move_Cursor(90, 34);
-            printf("2.피아노를 연주한다 ");
-            set_color(BG_COLOR_YELLOW);
-            Move_Cursor(53, 36);
-            printf("3.밖으로 나간다 ");
-            printf(COLOR_RESET);
-        }
-        {
-            int pharmasist_choice;
-
-            if (selectY != 1) {
-                if (GetAsyncKeyState('W') & 0x8000)  selectY -= 1;
-            }
-
-            if (selectX != 1) {
-                if (GetAsyncKeyState('A') & 0x8000) selectX -= 1;
-            }
-            if (selectY != 2) {
-                if (GetAsyncKeyState('S') & 0x8000)  selectY += 1;
-            }
-            if (selectX != 2) {
-                if (GetAsyncKeyState('D') & 0x8000) selectX += 1;
-            }
-
-
-            //잠을 잔다 미구현 
-            /*
-            if (selectX == 1 && selectY == 1) {
-            if (GetAsyncKeyState(VK_RETURN) & 0x8000)
-
-            }*/
-
-            //피아노를 연주한다
-
-            if (selectX == 2 && selectY == 1) {
-                if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
-                    mciSendString(TEXT("pause Room-bgm"), NULL, 128, NULL);
-                    mciSendString(TEXT("play piano"), NULL, 128, NULL);
-                    Sleep(4700);
-                    mciSendString(TEXT("seek piano to start"), NULL, 0, NULL);
-                    mciSendString(TEXT("resume Room-bgm"), NULL, 128, NULL);
-                }
-            }
-            //밖으로 나간다
-            if (selectX == 1 && selectY == 2) {
-                if (GetAsyncKeyState(VK_RETURN) & 0x8000) {
-                    mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
-                    mciSendString(TEXT("seek Room-bgm to start"), NULL, 0, NULL);
-                    return 4;
-                }
-            }
-
-
-
-        }
-    }
-}
-int game_Start() {
-
-    //Sleep(2000);
-    mciSendString(TEXT("close myBgm"), NULL, 0, NULL);
-    int statues01 = "";
-
-    system("cls");/*
-    Move_Cursor(60, 25);
-    printf("낮선 이곳에 이사오게된 당신\n");
-    Sleep(1500);
-    Move_Cursor(60, 26);
-    printf("이곳에서 약국을 차리기로 하는데...");
-    Sleep(4000);
-    system("cls");
-    Move_Cursor(60, 25);
-    printf("???:맛있는거 내놔");
-    Sleep(1500);
-    Move_Cursor(60, 26);
-    printf("네?");
-    Sleep(2000);
-    system("cls");
-    Move_Cursor(60, 25);
-    printf("아무래도 잘못 개업한거 같다");
-    */
-    Sleep(1000);
-   // while (statues01 != 27) {
-   //     statues01 = getch();
-        // 머하지...
-    //}
-    system("cls");
-    return 5; // return 5;
-}
-
-int main_game()
-{
-    //엘레나 소환
-    FILE* elena;
-    char line[1024];
-    elena = fopen("txts\elena.txt", "r");
-
-    //코미소환
-    FILE* comi;
-    comi = fopen("txts\comi.txt", "r");
-
-    int day = 1;
-    int money = 10000;
-    int satisfaction = 50;
-=======
 // 약국 영업 로직 함수
 int main_game(GameState* state) {
     Force_English_Mode();
-<<<<<<< HEAD
-=======
-    char medicine[50];
->>>>>>> 4e228ec51e1c5ef57f64c38e0f37423a8763ea69
-    int customer_count = 0;
->>>>>>> db0098eefb86f2ed3f84fe0b3bdfdb2a07b91c2e
 
     if (state->opend == 0) {
         char medicine[50];
@@ -1532,7 +1361,7 @@ int endings(GameState* state) {
     }
 
 
-    if (money < 300000 || money < 330000) {
+    if (money > 300000 || money < 330000) {
         system("cls");
         printf("아슬아슬하게 모았구나");
     }
@@ -1542,6 +1371,7 @@ int endings(GameState* state) {
         system("cls");
         printf("훌륭해");
     }
+
 
 
 
