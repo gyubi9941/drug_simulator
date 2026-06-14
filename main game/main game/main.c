@@ -791,10 +791,65 @@ int drug_store(GameState* state) {
 
 // 게임 인트로 시작 함수
 int game_Start() {
+    // 배경음악 정리 및 초기화
     mciSendString(TEXT("close myBgm"), NULL, 0, NULL);
     system("cls");
-    // 스토리 작성 부분
-    Sleep(1000);
+    printf("\033[?25l"); // 연출을 위해 커서 숨기기
+
+    int center_x = 15; // 중앙 정렬을 위한 X축 시작점
+
+    // === 1. 테두리 상자 연출 ===
+   /* Move_Cursor(center_x, 8);  printf("┌────────────────────────────────────────────────────────┐");
+    for (int i = 9; i <= 17; i++) {
+        Move_Cursor(center_x, i);
+        printf("│                                                        │");
+    }
+    Move_Cursor(center_x, 18); printf("└────────────────────────────────────────────────────────┘");
+    */
+    // === 2. 4초 간격 스토리 순차 출력 ===
+    // 1번째 줄
+    Move_Cursor(center_x + 4, 11);
+    set_color(36); // 청록색 글자 강조
+    printf("엘리아스에서 약국을 운영중인 당신...");
+    printf(COLOR_RESET);
+    Sleep(1500);
+
+    // 2번째 줄
+    Move_Cursor(center_x + 4, 13);
+    printf("악덕 집주인에게 다음 달 월세 12만원을 요구 받았다.");
+    Sleep(1500);
+
+    // 3번째 줄
+    Move_Cursor(center_x + 4, 15);
+    set_color(91); // 약간의 위기감을 주는 밝은 빨간색
+    printf("남은 10일간 열심히 돈을 모으자!");
+    printf(COLOR_RESET);
+    Sleep(1500);
+
+    // 4번째 줄? 
+
+
+    // === 3. 모든 스토리 출력 후 엔터 대기 UI ===
+    Move_Cursor(center_x + 14, 21);
+    set_color(BG_COLOR_YELLOW); // 노란색 바형태의 가이드
+    set_color(FONT_COLOR_BLACK);
+    printf(" [ Press ENTER to Continue ] ");
+    printf(COLOR_RESET);
+
+    // 엔터 키(13)가 입력될 때까지 키 버퍼를 비우며 대기
+    while (1) {
+        if (_kbhit()) {
+            int key = _getch();
+            if (key == 13) { // 엔터 누르면 루프 탈출
+                break;
+            }
+        }
+        Sleep(30); // CPU 점유율 방지
+    }
+
+    // 종료 전 화면 정리 후 기존 로직대로 5 리턴
+    printf("\033[?25h"); // 커서 원상복구
+    system("cls");
     return 5;
 }
 
