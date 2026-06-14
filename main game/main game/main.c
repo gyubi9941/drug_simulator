@@ -1,5 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS           // 구동시 예외처리
 
+#pragma once
 #include <stdio.h> 
 #include <windows.h> 
 #include <conio.h> 
@@ -29,6 +30,8 @@
 #define BG_COLOR_YELLOW  43
 #define BG_COLOR_BrRED   101
 #define BG_COLOR_BrGREEN 102
+#define FONT_COLOR_BrGREEN 32
+#define FONT_COLOR_RED 31
 #define FONT_COLOR_WHITE 37
 #define FONT_COLOR_BLACK 30
 #define COLOR_RESET      "\x1b[0m"
@@ -38,21 +41,44 @@ typedef struct {
     int day;
     int money;
     int satisfaction;
+    int opend;
+    int inventory[7];
 } GameState;
 
 typedef struct {
     char dialogue[200];
     char answer[50];
+    char precise_success[100];
+    char precise_fail[100];
 } Demand;
 
 typedef struct {
     char chara[256];
-    char fail_art_file[256];
-    char success_dialogue[3][200];
-    char fail_dialogue[3][200];
+    char fail_art_file[512];
+    char success_chara[256];
     Demand demands[3];
     int num_demands;
 } CustomerProfile;
+
+typedef struct {
+    char name[50]; // 약 이름
+    int sell_price;     // 약 가격
+    int buy_price;
+} Medicine;
+
+
+// 구조체 선언들 밑에, 함수들 시작하기 전 빈 공간에 선언해!
+Medicine stock[7] = {
+    {"두통약", 3000, 1500},
+    {"소화제", 2500, 1500},
+    {"회복포션", 1500, 500},
+    {"해독제", 10000, 5000},
+    {"해열제", 4000, 2000},
+    {"수면제", 4500, 2000},
+    {"감기약", 8000, 4000}
+};
+
+
 
 //커서 지우기
 void HideCursor() {
@@ -62,31 +88,113 @@ void HideCursor() {
     SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
 }
 
-// 콘솔 창을 강제로 영어 모드로!
-void Force_English_Mode() {
-    // GetKeyState로 한/영 키의 현재 상태를 몰래 검사함.
-    // 결과가 1이면 '한글 모드'라는 뜻이야.
-    if (GetKeyState(VK_HANGUL) & 1) {
-        // 한글 모드니까 한/영 키를 강제로 눌렀다(0) 뗌(KEYUP) -> 영어로 변신!
-        keybd_event(VK_HANGUL, 0, 0, 0);
-        keybd_event(VK_HANGUL, 0, KEYEVENTF_KEYUP, 0);
-    }
-}
-
-// 콘솔 창을 강제로 한글 모드로!
-void Force_Korean_Mode() {
-    // 결과가 0이면 '영어 모드'라는 뜻이야.
-    if ((GetKeyState(VK_HANGUL) & 1) == 0) {
-        // 영어 모드니까 한/영 키를 강제로 눌렀다(0) 뗌(KEYUP) -> 한글로 변신!
-        keybd_event(VK_HANGUL, 0, 0, 0);
-        keybd_event(VK_HANGUL, 0, KEYEVENTF_KEYUP, 0);
-    }
-}
 
 // 커서 위치 이동 함수
 void Move_Cursor(int x, int y) {
     printf("\033[%d;%dH", y, x);
 }
+
+
+void set_color(int code) {
+    printf("\x1b[%dm", code);
+}
+
+
+// 자동개행
+// 시작 좌표(startX, startY)와 텍스트, 그리고 텍스트가 넘어갈 최대 너비(max_width)를 받음
+void print_dialogue_wrapped(int startX, int startY, const char* text, int max_width) {
+    int currentX = startX;
+    int currentY = startY;
+    int i = 0;
+
+    Move_Cursor(currentX, currentY);
+    set_color(FONT_COLOR_BLACK); // 글자는 검은색
+    printf("\033[107m");         // 배경은 흰색 (말풍선 효과 시작!)
+
+    while (text[i] != '\0') {
+        // 1. 한글(2바이트)인지 확인 (C언어 콘솔에서 한글은 음수 값을 가짐)
+        if (text[i] < 0) {
+            // 출력하면 지정한 너비를 뚫고 나갈 것 같으면 미리 개행 처리!
+            if (currentX - startX + 2 > max_width) {
+                printf("\033[0m"); // 이전 줄의 흰색 배경을 잠깐 끄고
+                currentY++;
+                currentX = startX;
+                Move_Cursor(currentX, currentY);
+                set_color(FONT_COLOR_BLACK);
+                printf("\033[107m"); // 다음 줄로 넘어와서 흰색 배경 다시 켬!
+            }
+            printf("%c%c", text[i], text[i + 1]);
+            i += 2;
+            currentX += 2;
+        }
+        // 2. 영어, 숫자, 띄어쓰기, 기호 (1바이트) 처리
+        else {
+            if (currentX - startX + 1 > max_width) {
+                printf("\033[0m");
+                currentY++;
+                currentX = startX;
+                Move_Cursor(currentX, currentY);
+                set_color(FONT_COLOR_BLACK);
+                printf("\033[107m");
+            }
+            printf("%c", text[i]);
+            i += 1;
+            currentX += 1;
+        }
+    }
+    printf("\033[0m"); // 대사 출력이 모두 끝나면 색상 완벽하게 초기화
+}
+
+
+
+void Force_English_Mode() {
+    // 게임 실행 중에 윈도우의 한글 입력기 창고(dll)를 강제로 열어버림!
+    HMODULE hImm = LoadLibrary(TEXT("imm32.dll"));
+    if (hImm != NULL) {
+        typedef HIMC(WINAPI* GETCONTEXT)(HWND);
+        typedef BOOL(WINAPI* RELEASECONTEXT)(HWND, HIMC);
+        typedef BOOL(WINAPI* SETSTATUS)(HIMC, DWORD, DWORD);
+
+        GETCONTEXT getCtx = (GETCONTEXT)GetProcAddress(hImm, "ImmGetContext");
+        RELEASECONTEXT relCtx = (RELEASECONTEXT)GetProcAddress(hImm, "ImmReleaseContext");
+        SETSTATUS setStat = (SETSTATUS)GetProcAddress(hImm, "ImmSetConversionStatus");
+
+        if (getCtx && relCtx && setStat) {
+            HWND hwnd = GetConsoleWindow();
+            HIMC himc = getCtx(hwnd);
+            // 0 = IME_CMODE_ALPHANUMERIC (완벽한 순수 영문 모드)
+            setStat(himc, 0, 0);
+            relCtx(hwnd, himc);
+        }
+        FreeLibrary(hImm); // 일 다 했으니 창고 문 닫기
+    }
+}
+
+// 헬레나님의 절대 무적 한글 모드 강제 변환기
+void Force_Korean_Mode() {
+    HMODULE hImm = LoadLibrary(TEXT("imm32.dll"));
+    if (hImm != NULL) {
+        typedef HIMC(WINAPI* GETCONTEXT)(HWND);
+        typedef BOOL(WINAPI* RELEASECONTEXT)(HWND, HIMC);
+        typedef BOOL(WINAPI* SETSTATUS)(HIMC, DWORD, DWORD);
+
+        GETCONTEXT getCtx = (GETCONTEXT)GetProcAddress(hImm, "ImmGetContext");
+        RELEASECONTEXT relCtx = (RELEASECONTEXT)GetProcAddress(hImm, "ImmReleaseContext");
+        SETSTATUS setStat = (SETSTATUS)GetProcAddress(hImm, "ImmSetConversionStatus");
+
+        if (getCtx && relCtx && setStat) {
+            HWND hwnd = GetConsoleWindow();
+            HIMC himc = getCtx(hwnd);
+            // 1 = IME_CMODE_NATIVE (완벽한 순수 한글 모드)
+            setStat(himc, 1, 0);
+            relCtx(hwnd, himc);
+        }
+        FreeLibrary(hImm);
+    }
+}
+
+
+
 
 // 아스키 아트 그리기 함수
 void draw_ascii_art(const char* filepath, int startX, int startY) {
@@ -116,9 +224,7 @@ void draw_pixel(int x, int y, int r, int g, int b) {
 }
 
 // 폰트 색상 변경 함수
-void set_color(int code) {
-    printf("\x1b[%dm", code);
-}
+
 
 // 스프라이트 데이터 (상수)
 const char* PHARMACY[] = {
@@ -148,6 +254,24 @@ const char* SKY[] = {
     "WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW", "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
 };
 
+
+const char* SKY_NIGHT[] = {
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMLLLMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMLLLLLMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMLLLLMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMLLLLLLLLLMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMLLLMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMLLLLLLLMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM",
+    "MMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMMM", "DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD"
+};
+
 const char* ROOM[] = {
     "HHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHH", "HHHHQQQQQQQQQQQCCCCCCCCCCQQQQQQQQQQQHHHH",
     "HHHHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHHHH", "HHHHHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHHHHH",
@@ -155,6 +279,22 @@ const char* ROOM[] = {
     "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
     "HHHHHHHJJJJWWWWWWWWJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHJJJJWWWWWWWWJJJJJJJJJJJJJJHHHHHHH",
     "HHHHHHHJJJJWWWWWWWWJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHJJJDDDDDDDDDDJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHNNNNNNJJJJJJJJJJJJJJDDDDDDHHHHHHH",
+    "HHHHHHNNNNNNNJJJJJJJJJJJJJJDDDDDDHHHHHHH", "HHHHHNCCCCCCNJJJJJJJJJJJJJJDDCCCDHHHHHHH",
+    "HHHHHNJJJJJJNJJJJJJJJJJJJJJDRRRRRRHHHHHH", "HHHHHNBBBBBBNBBBBBBBBBBBBBBDDRRRRRRHHHHH",
+    "HHHHHBBBBBBBBBBBBBBBBBBBBBBDBDRRRRRRHHHH", "HHHHBBBBBBBBBBBBBBBBBBBBBBBBBBDRRRRRRHHH",
+    "HHHBBBBBBBBBBBBBBBBBBBBBBBBBBBBDRRRRRRHH", "HHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBDDDDDDDDH",
+    "HBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBDBBBBBBDH"
+};
+
+const char* ROOM_NIGHT[] = {
+    "HHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHH", "HHHHQQQQQQQQQQQCCCCCCCCCCQQQQQQQQQQQHHHH",
+    "HHHHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHHHH", "HHHHHHQQQQQQQQQQQQQQQQQQQQQQQQQQQQHHHHHH",
+    "HHHHHHHQQQQQQQQQQQQQQQQQQQQQQQQQQHHHHHHH", "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJMMMMMMMMJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHJJJJMMMMMMMMJJJJJJJJJJJJJJHHHHHHH",
+    "HHHHHHHJJJJMMMMMMMMJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHJJJDDDDDDDDDDJJJJJJJJJJJJJHHHHHHH",
     "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH",
     "HHHHHHHJJJJJJJJJJJJJJJJJJJJJJJJJJHHHHHHH", "HHHHHHHNNNNNNJJJJJJJJJJJJJJDDDDDDHHHHHHH",
     "HHHHHHNNNNNNNJJJJJJJJJJJJJJDDDDDDHHHHHHH", "HHHHHNCCCCCCNJJJJJJJJJJJJJJDDCCCDHHHHHHH",
@@ -184,10 +324,15 @@ void draw_sprite(int worldX, int worldY, const char* sprite[], int h, int camera
             case 'B': draw_pixel(sx, sy, 165, 135, 100); break;
             case 'H': draw_pixel(sx, sy, 200, 200, 200); break;
             case 'J': draw_pixel(sx, sy, 210, 210, 210); break;
+            case 'M': draw_pixel(sx, sy, 25, 25, 112); break;
+            case 'L': draw_pixel(sx, sy, 47, 79, 79); break;
             }
         }
     }
 }
+
+
+
 
 // 인게임 마을 맵 함수
 int game_map(GameState* state) {
@@ -254,22 +399,110 @@ int game_map(GameState* state) {
             printf("\033[?25h\033[2J\033[1;1H");
             return 5;
         }
-        if (playerX >= 30) { // 약국으로 입장 조건 완화
+        if (playerX >= 30 ) { // 약국으로 입장 조건 완화
             printf("\033[?25h\033[2J\033[1;1H");
+            Move_Cursor(1, SCR_H + 5);
+            printf("오늘의 약국영업을 시작합니다.");
+            Sleep(1200);
+            
             return 6;
         }
     }
 }
 
+// 인게임 마을 맵 함수
+int game_map_night(GameState* state) {
+    Force_English_Mode();
+    printf("\033[?25l\033[2J");
+    Force_English_Mode();
+    int playerX = 27;
+    int playerY = 26;
+    int moveSpeed = 1;
+
+    int cameraLeftX = 0;
+    int cameraTopY = 0;
+
+    draw_sprite(0, 0, SKY_NIGHT, 28, cameraLeftX, cameraTopY);
+    draw_sprite(1, 19, HOUSE, 8, cameraLeftX, cameraTopY);
+    draw_sprite(30, 19, PHARMACY, 8, cameraLeftX, cameraTopY);
+    draw_pixel(26, 26, 255, 255, 0);
+
+    while (1) {
+        Sleep(22);
+        int oldPlayerX = playerX;
+        int oldPlayerY = playerY;
+
+        if (GetAsyncKeyState('A') & 0x8000)  playerX -= moveSpeed;
+        if (GetAsyncKeyState('D') & 0x8000)  playerX += moveSpeed;
+        if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) return 7;
+
+        if (playerX < 0) playerX = 0;
+        if (playerX > WORLD_W - 1) playerX = WORLD_W - 1;
+
+        if (oldPlayerX != playerX || oldPlayerY != playerY) {
+            char bg_char = 'W';
+
+            if (oldPlayerY >= 0 && oldPlayerY < 28 && oldPlayerX >= 0 && oldPlayerX < 40) {
+                bg_char = SKY_NIGHT[oldPlayerY][oldPlayerX];
+            }
+            if (oldPlayerX >= 1 && oldPlayerX < 1 + 11 && oldPlayerY >= 19 && oldPlayerY < 19 + 8) {
+                char hc = HOUSE[oldPlayerY - 19][oldPlayerX - 1];
+                if (hc != '.') bg_char = hc;
+            }
+            if (oldPlayerX >= 30 && oldPlayerX < 30 + 9 && oldPlayerY >= 19 && oldPlayerY < 19 + 8) {
+                char pc = PHARMACY[oldPlayerY - 19][oldPlayerX - 30];
+                if (pc != '.') bg_char = pc;
+            }
+
+            int old_sx = oldPlayerX - cameraLeftX;
+            int old_sy = oldPlayerY - cameraTopY;
+
+            if (bg_char == 'M') draw_pixel(old_sx, old_sy, 25, 25, 112);
+            // 다른 배경 타일 복구 로직이 필요하다면 여기에 추가.
+
+            int p_screen_x = playerX - cameraLeftX;
+            int p_screen_y = playerY - cameraTopY;
+            draw_pixel(p_screen_x, p_screen_y, 255, 255, 0);
+        }
+
+        Sleep(16);
+
+        Move_Cursor(1, SCR_H + 2);
+        printf("======================================================");
+        Move_Cursor(1, SCR_H + 3);
+        printf("POSITION : (%3d, %3d) | DAY : %d | MONEY : %d원    ", playerX, playerY, state->day, state->money);
+
+        if (playerX <= 10) { // 집으로 입장 조건 완화
+            printf("\033[?25h\033[2J\033[1;1H");
+            return 5;
+        }
+        if (playerX >= 30) { // 약국으로 입장 조건 완화
+            printf("\033[?25h\033[2J\033[1;1H");
+            Move_Cursor(1, SCR_H + 5);
+            printf("더 영업하기엔 시간이 늦었다 이만 돌아가자");
+            Sleep(1000);
+           
+            return 9;
+        }
+    }
+}
+
+
+
 // 집 내부 함수
 int house(GameState* state) {
-
+    Force_English_Mode();
     printf("\033[?25l\033[2J");
     mciSendString(TEXT("setaudio Room-bgm volume to 80"), NULL, 0, NULL);
     mciSendString(TEXT("play Room-bgm repeat"), NULL, 128, NULL);
 
     int selectX = 1, selectY = 1;
+    if (state->opend == 0) {
     draw_sprite(20, 5, ROOM, 25, 0, 0);
+    }
+    else {
+        draw_sprite(20, 5, ROOM_NIGHT, 25, 0, 0);
+    }
     Move_Cursor(40, 30);
     printf("--------------------------------------------------------------------------------");
 
@@ -290,6 +523,10 @@ int house(GameState* state) {
         Move_Cursor(53, 36);
         if (selectX == 1 && selectY == 2) { set_color(BG_COLOR_YELLOW); printf("3.밖으로 나간다 "); printf(COLOR_RESET); }
         else printf("3.밖으로 나간다 ");
+
+        Move_Cursor(90, 36);
+        if (selectX == 2 && selectY == 2) { set_color(BG_COLOR_YELLOW); printf("4.당일 발송 약사 몰"); printf(COLOR_RESET); }
+        else printf("4.당일 발송 약사 몰");
 
         int input = _getch(); // 키보드 입력 받기
 
@@ -324,6 +561,7 @@ int house(GameState* state) {
         if (input == 13) {
             if (selectX == 1 && selectY == 1) {
                 state->day += 1;
+                state->opend = 0;
                 system("cls");
                 Move_Cursor(40, 15);
                 printf("지루한 하루가 지나고... [%d일차] 아침이 밝았습니다.", state->day);
@@ -344,9 +582,125 @@ int house(GameState* state) {
                 mciSendString(TEXT("seek Room-bgm to start"), NULL, 0, NULL);
                 return 4;
             }
+            if (selectX == 2 && selectY == 2) {
+                return 10;
+            }
+
         }
     }
 }
+
+int drug_store(GameState* state) {
+    int selectY = 0;       // 0 ~ 6 (선택한 약의 배열 인덱스)
+    int selectX = 1;       // 1 ~ 99 (선택한 약의 구매 수량)
+    int drug_select = 0;   // 0: 약 선택 모드 (W/S), 1: 수량 선택 모드 (A/D)
+
+    Force_English_Mode();  // 입력 충돌 방지용
+
+    while (1) {
+        system("cls");
+
+        Move_Cursor(2, 2);
+        printf("=== [ 상점 구매 창 ] ===");
+        Move_Cursor(2, 4);
+        printf("보유 자금: %d 골드", state->money);
+
+        // ★ 헬레나님의 우아한 배열 출력 로직 (하드코딩 금지!)
+        for (int i = 0; i < 7; i++) {
+            Move_Cursor(2, 6 + i);
+
+            // 현재 내 커서(selectY)가 위치한 약이라면?
+            if (i == selectY) {
+                set_color(BG_COLOR_BLUE); // 하이라이트 효과
+                printf(" ▶ %s : %d 골드 ", stock[i].name, stock[i].buy_price);
+
+                // 게다가 수량 선택 모드(drug_select == 1)라면 개수 조절 UI 추가!
+                if (drug_select == 1) {
+                    printf("   [ 수량: ◀ %2d ▶ ] ", selectX);
+                }
+                printf(COLOR_RESET);
+            }
+            // 커서가 없는 나머지 약들은 평범하게 출력
+            else {
+                printf("    %s : %d 골드 ", stock[i].name, stock[i].buy_price);
+            }
+        }
+
+        // 조작키 안내
+        Move_Cursor(2, 15);
+        if (drug_select == 0) {
+            printf("[ W/S : 위아래 이동 ]  [ Enter : 수량 선택 ]  [ ESC : 상점 나가기 ]");
+        }
+        else {
+            printf("[ A/D : 수량 조절 ]  [ Enter : 구매 확정 ]  [ ESC : 선택 취소 ]");
+        }
+
+        // 입력 찌꺼기 소각
+        FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+        int input = _getch();
+
+        // 한글 ㅈㅁㄴㅇ 방향키 마법 (W, A, S, D로 변환)
+        if (input == 227) {
+            int b2 = _getch(); int b3 = _getch();
+            if ((b2 == 133 && b3 == 136) || (b2 == 132 && b3 == 181)) input = 'w';
+            else if (b2 == 133 && b3 == 129) input = 'a';
+            else if (b2 == 132 && b3 == 180) input = 's';
+            else if (b2 == 133 && b3 == 135) input = 'd';
+            while (_kbhit()) _getch();
+        }
+
+        // 1. ESC 키 처리 (상황에 따라 다르게 작동)
+        if (input == 27) {
+            if (drug_select == 1) {
+                drug_select = 0; // 수량 선택 중에 누르면 개수 선택만 취소함
+            }
+            else {
+                return 5; // 약 선택 중에 누르면 상점 밖(집)으로 나감
+            }
+        }
+
+        // 2. Enter 키 처리 (13)
+        if (input == 13) {
+            if (drug_select == 0) {
+                // 아직 약만 골랐다면 수량 모드로 진입
+                drug_select = 1;
+                selectX = 1; // 개수는 무조건 1개부터 시작
+            }
+            else {
+                // 수량까지 다 고르고 엔터를 쳤다면 구매 확정!
+                int total_cost = stock[selectY].buy_price * selectX;
+
+                if (state->money >= total_cost) {
+                    state->money -= total_cost;          // 지갑에서 돈 빼고
+                    state->inventory[selectY] += selectX; // 가방에 약 넣기!
+
+                    Move_Cursor(2, 17);
+                    printf("%s %d개를 %d골드에 구매했다!", stock[selectY].name, selectX, total_cost);
+                    Sleep(1000); // 1초간 보여줌
+                    drug_select = 0; // 구매 끝났으니 다시 기본 상태로 복귀
+                }
+                else {
+                    Move_Cursor(2, 17);
+                    printf("돈이 부족하잖아! 거지 녀석아!");
+                    Sleep(1000);
+                }
+            }
+        }
+
+        // 3. 이동 키 처리 (상태에 따라 제한 구역을 완벽하게 통제)
+        if (drug_select == 0) {
+            // 약 선택 모드일 때는 위아래(W/S)만 가능하게 통제 (0 ~ 6번 방어)
+            if ((input == 'w' || input == 'W') && selectY > 0) selectY--;
+            if ((input == 's' || input == 'S') && selectY < 6) selectY++;
+        }
+        else {
+            // 수량 선택 모드일 때는 좌우(A/D)만 가능하게 통제 (1개 ~ 99개)
+            if ((input == 'a' || input == 'A') && selectX > 1) selectX--;
+            if ((input == 'd' || input == 'D') && selectX < 99) selectX++;
+        }
+    }
+}
+
 
 // 게임 인트로 시작 함수
 int game_Start() {
@@ -359,193 +713,374 @@ int game_Start() {
 // 약국 영업 로직 함수
 int main_game(GameState* state) {
     Force_English_Mode();
-    char medicine[50];
-    int customer_count = 0;
 
-    Sleep(1500);
-    // 손님 수를 2명에서 5명으로 확장, 손님이랑 대사는 원하는거로 바꾸렴.
-    CustomerProfile characters[5] = {
-        {
-            "txts/elena.txt", "txts/elena.txt",
-            {"엘레나: 역시 맞출줄 알았어", "엘레나: 역시나 명의야", "엘레나: 대단하군"},
-            {"엘레나: 히익 니녀석 기초적인 화학식도 모르는거냐?", "엘레나: 으앙! 이게 아니잖아! 배가 더 아파졌어!", "엘레나: 하 니녀석 출입금지시켜버린다"},
+    if (state->opend == 0) {
+        char medicine[50];
+        int customer_count = 0;
+
+        Sleep(1500);
+        // 손님 수를 2명에서 5명으로 확장, 손님이랑 대사는 원하는거로 바꾸렴.
+        CustomerProfile characters[6] = {
             {
-                {"엘레나: 머리가 아파! 달콤하고 하얀 알약 줘!", "타이레놀"},
-                {"엘레나: 배가 고파서 돌을 씹어먹었더니 배탈이 났어... 소화제 줘!", "소화제"},
-                {"엘레나: 넘어져서 무릎이 까졌어! 빨간약 발라줘!", "빨간약"}
-            }, 3
-        },
-        {
-            "txts/comi.txt", "txts/comi.txt",
-            {"코미: 후아암 역시 최고야", "코미: 오늘은 편하게 잘 수 있겠구나", "코미: 고마워"},
-            {"코미: 이게뭐야! 이런 약사는 빨리 망해야해!", "코미: 느아앙 너 뭘 주는거야!", "코미: 오늘 낮잠은 글렀네"},
+                "txts/elena.txt", "txts/elena_fail.txt","txts/elena_ok.txt",
+                
+                {
+                    {"엘레나: 야. 약국 주인. 머리가 너무 아파.화학식이 C8H9NO2 에다가 분자량이 151에 근접한거 좀 줘",
+                    "두통약",
+                    "엘레나: 하 꽤나 똑똑하군",
+                    "엘레나: 니 녀석 간단한 화학식도 모르는거냐?"
+                },
+                {   "엘레나: 콜록.. 아이 씨. 갑자기 찬바람이 불어선. 아세트아미노펜 있어?",
+                    "해열제",
+                    "엘레나: 드디어 살거같네",
+                    "엘레나: 실패대사2 "
+                },
+                {"엘레나: 수인 놈들이 또 분탕을.. 뭐든 좋으니까 자양강장제 좀 부탁할게.",
+                 "회복포션",
+                 "엘레나: 오늘 수인녀석을 몰아내겠다",
+                 "엘레나: (속닥속닥) 아멜리아, 저녀석 모나티엄으로 납치해."}
+                }, 3
+            },
             {
-                {"코미: 잠이 안 온다구... 포션 같은 거 없어?", "포션"},
-                {"코미: 눈이 침침해... 인공눈물 줘...", "인공눈물"},
-                {"코미: 쿨럭쿨럭... 감기 걸린 것 같아. 감기약 줘.", "감기약"}
-            }, 3
-        },
-        // [추가 손님 1] 네르 (그림 파일은 임시로 elena 재활용, 대사 3개 추가)
-        {
-            "txts/elena.txt", "txts/elena.txt",
-            {"네르: 교주님께도 보고드려야겠군요. 훌륭합니다.", "네르: 음, 약효가 아주 빠르군요.", "네르: 고맙습니다. 한 시름 놓았네요."},
-            {"네르: 도대체 뭘 준 겁니까?! 당장 처벌하겠습니다!", "네르: 으윽... 사기꾼이 따로 없군요.", "네르: 이딴 걸 약이라고 내놓다니..."},
+                "txts/comi.txt", "txts/comi_fail.txt", "txts/comi_ok.txt",
+              
+                {
+                    {"코미: 하암~ 잠을 너무 잤더니 머리아파.",
+                    "두통약",
+                    "코미: 잘했어. 코미가 칭찬 스티커 하나 붙여줄게.",
+                    "코미: 이런것도 처방이라 내린거야? 수준 하고는."
+                },
+                {    "코미: 버터가 또 이상한거 주워먹다가 앓아 누웠어. 치료제 내놔.",
+                    "해독제",
+                    "코미: 그래. 바로 이거야. ",
+                    "코미: 버터보다 멍청한 애가 더 있을 줄이야.."
+                },
+                {"코미: 배가 너무 아파. 코미는 사료 캔 3캔 먹었을 뿐인데.. .",
+                 "소화제",
+                 "코미: 너. 뭐 좀 아는 녀석이구나.",
+                 "코미: 거기 너. 비켜. 코미가 약사하는게 더 좋을거야."}
+                }, 3
+            },
+            // [추가 손님 1] 네르 (그림 파일은 임시로 elena 재활용, 대사 3개 추가)
             {
-                {"네르: 스트레스 때문에 뒷목이 당기는군요..", "혈압약"},
-                {"네르: 요즘 서류를 너무 많이 봐서 피로해요..", "피로해소제"},
-                {"네르: 여왕님께 설교하느라 입안이 다 헐어버렸답니다. 바르는 연고 좀 주세요.", "연고"}
-            }, 3
-        },
-        // [추가 손님 2] 에르핀 (그림 파일은 임시로 comi 재활용, 대사 3개 추가)
-        {
-            "txts/comi.txt", "txts/comi.txt",
-            {"에르핀: 우와아! 단숨에 다 나았어! 빵 먹으러 가야지!", "에르핀: 헤헤, 고마워! 넌 좋은 녀석이구나!", "에르핀: 역시 내 직감은 틀리지 않았어!"},
-            {"에르핀: 아야야! 배가 더 아파! 너 나한테 독약 먹였지?!", "에르핀: 맛없어! 게다가 낫지도 않잖아!", "에르핀: 흐아앙! 이런거 말고 효과 직빵인거 내놓으란 말이야!!"},
+                "txts/neru.txt", "txts/neru_fail.txt", "txts/neru_ok.txt",
+
+                {
+                    {"네르: 어제 해당국을 너무먹어서 그런지 속이 너무 더부룩 한거 같아요.",
+                     "소화제",
+                     "네르: 와아~ 덕분에 한결 나아졌네요.",
+                     "네르: 제가 말한건 이게 아니긴 합니다만... 뭐. 별 수 없죠."
+                },
+                     
+                    {"네르: 여왕님이 떼스시는거 달래느라너무 피곤하답니다..",
+                    "회복포션",
+                    "네르 : 역시 당신이군요. 교주님께도 보고드려야 겠어요.",
+                     "네르 : 여왕님 하나만으로도 골치 아픈데 당신까지."},
+
+                    {"네르: 오늘따라 기도드리기가 힘드네요..잠이 잘 오게 해주세요.",
+                    "수면제",
+                     "네르: 고마워요. 다음에 또 부탁드릴께요.",
+                     "네르: 니녀석 이단이구나!!!"}
+                }, 3
+            },
+            // [추가 손님 2] 아야 (그림 파일은 임시로 comi 재활용, 대사 3개 추가)
             {
-                {"에르핀: 빵을 너무 많이 먹었나 봐... 속이 더부룩해. 약 줘!", "까스활명수"},
-                {"에르핀: 이가 너무 시리고 아파... 약 좀 줘봐.", "치통약"},
-                {"에르핀: 숲에서 놀다가 벌에 쏘였어! 약 내놔!", "해독제"}
-            }, 3
-        },
-        // [추가 손님 3] 벨벳 (그림 파일은 임시로 elena 재활용, 대사 3개 추가)
-        {
-            "txts/elena.txt", "txts/elena.txt",
-            {"벨벳: 흠, 제법 쓸만한 약이군요.", "벨벳: 통증이 가시는군. 칭찬해주지.", "벨벳: 고맙군. 약값은 넉넉히 주지."},
-            {"벨벳: 나를 모욕할 셈인가? 이딴 쓰레기를 주다니!", "벨벳: 크윽... 독을 탄 건 아니겠지?!", "벨벳: 당장 눈앞에서 치워라!"},
+                "txts/aya.txt", "txts/aya_fail.txt", "txts/aya_ok.txt",
+
+                {
+                    {"아야: 어제 너무 격렬하게 움직여서 몸이 달아올랐어..",
+                    "해열제",
+                    "아야: 아아 편해졌어",
+                    "아야: 으윽 몸이 더 달아오르잖아"},
+
+
+                    {"아야: 오늘 밤 자는 것좀 도와줄래?",
+                    "수면제",
+                    "아야: 고마워 오늘 밤 기대할께",
+                    "아야: 으윽 오늘밤은 못자겠네"}
+                    ,
+                    {"아야: 아앗..어제 질척거리는 무언가를 먹었어 너의 그것으로 해결해줘",
+                    "해독제",
+                    "아야: 우웁 꿀꺽 으으.. 비리긴 하지만 효과는 좋네",
+                    "아야: 앗 따가워 이렇게 따가운건 처음이야"}
+                }, 3
+            },
+            // [추가 손님 3] 림 (그림 파일은 임시로 elena 재활용, 대사 3개 추가)
             {
-                {"벨벳: 전투 중에 뼈가 삔 것 같다. 파스 하나 내오거라.", "파스"},
-                {"벨벳: 상처가 덧나서 진물이 흐르는군. 소독약이 필요하다.", "소독약"},
-                {"벨벳: 기침이 멈추질 않는군. 진해거담제 처방해라.", "진해거담제"}
-            }, 3
+                "txts/rim2.txt", "txts/rim_fail.txt", "txts/rim_ok.txt",
+
+                {
+                    {"림: 재치있는 나는..엣취!..",
+                    "감기약",
+                    "림: 웰던. 당신은 정말 놀라운 사람이었던.",
+                    "림: 이이제이는 이의제기할겁니다...!"},
+                    {"림: 잠이 오지 않을 때는 잠자리를 잡아. 후후..",
+                    "수면제",
+                    "림: 으흐흐흐~",
+                    "림: 약국은 절대 악국."},
+
+
+                    {"림: 뜨거운 아이스 아메리카노 하나 줘", 
+                     "해열제",
+                     "림: 크후후후...",
+                      "림: 이것이야말로 나의 말로...?"}
+                }, 3
+            },
+
+            {
+              "txts/spiki.txt", "txts/spiki_fail.txt", "txts/spiki_ok.txt",
+
+                {
+                    {"스핔이: 스핔이!", "회복포션", "스핔이: 쪼아요!", "스핔이: 흐에에엥"},
+                    {"스핔이: 네르지마세요!", "두통약", "스핔이: 쪼아요1", "스핔이: 네르는 이렇게 폭력적인 역할이 아니란말이에요!"},
+                    {"스핔이: 오 신이시여 정말 감사합니다 이런곳에서 일반인을 만나봽다니 저로말할거같으면....", "감기약", "오 정말 감사합니다 덕분에 한결 편해졌네요", "이런 안타깝군요 당신은 명의가 아니군요"}
+                },3
+            }
+        };
+
+        srand((unsigned int)time(NULL));
+        //char* goodLines[3] = { "오! 몸이 아주 가뿐해졌어!", "역시 명의로구나.", "상태가 좋아졌군!" };
+        //char* badLines[3] = { "으윽, 몸이 더 이상해졌잖아!", "잘못 준 것 같은데...", "돌팔이 녀석!" };
+
+
+        time_t start_time = time(NULL); // 영업 시작 시간 기록
+        int time_limit = 120;           // 영업시간 제한: 180초 (3분)
+
+        while (1) {
+            printf("\033[?25h");
+
+            int elapsed_time = (int)(time(NULL) - start_time);
+            int remain_time = time_limit - elapsed_time;
+
+            // 남은 시간이 0 이하면 영업 종료! (루프 탈출)
+            if (remain_time <= 0) {
+                break;
+            }
+
+
+
+            while (_kbhit()) { // 지도에서 입력하고 남은 버퍼 청소
+                _getch();
+            }
+
+
+            int wait_time = (rand() % 10) + 1;
+
+
+
+
+
+            // -------------------------------------------------------------------------
+            // [대기 화면 UI 개편] 우측 여백을 화려한 네온 스타일 테두리와 장식으로 채움
+            // -------------------------------------------------------------------------
+            system("cls");
+            set_color(FONT_COLOR_WHITE);
+
+
+            for (int i = wait_time; i > 0; i--) {
+                printf("\033[?25h");
+                int elapsed = (int)(time(NULL) - start_time);
+                int remain_time = time_limit - elapsed;
+
+                // 대기 도중에 3분(180초)이 다 지나버렸다면 얄짤없이 즉시 루프 탈출!
+                if (remain_time <= 0) break;
+
+                system("cls");
+
+                Move_Cursor(82, 3);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+                Move_Cursor(82, 4);  printf("┃      "); set_color(BG_COLOR_BLUE); printf(" [+] ELIAS PHARMACY [+] "); printf(COLOR_RESET); printf("");
+                Move_Cursor(82, 5);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+                Move_Cursor(82, 6);  printf("┃                                                        ");
+                Move_Cursor(82, 7);  printf("┃  [STATUS BOARD]                                     ");
+                Move_Cursor(82, 8);  printf("┃  - 현재 영업일 : "); set_color(BG_COLOR_RED); printf(" %2d 일차 ", state->day); printf(COLOR_RESET); printf("");
+                Move_Cursor(82, 9);  printf("┃  - 보유 자금   : %10d 원", state->money);
+                Move_Cursor(82, 10); printf("┃  - 마을 만족도 : [");
+                // 만족도 바(Bar) 차트 시각화 효과
+                int barcount = state->satisfaction / 10;
+                for (int b = 0; b < 10; b++) {
+                    if (b < barcount) printf("■");
+                    else printf(" ");
+                }
+                printf("] %3d / 100                   ", state->satisfaction);
+                Move_Cursor(82, 13); printf("┃                                                        ");
+                Move_Cursor(82, 14); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+                Move_Cursor(82, 11);
+                printf("┃ "); set_color(BG_COLOR_BLUE); printf("[영업 대기 중...] "); printf(COLOR_RESET);
+                Move_Cursor(82, 12);
+                printf("┃   ▶ 영업 종료까지 남은 시간 : %02d:%02d", remain_time / 60, remain_time % 60);
+
+                Sleep(1000); // 정확히 1초 대기하면서 루프 회전
+            }
+
+            // 손님 및 대사 무작위 선택
+            int customerIndex = rand() % 6;
+            CustomerProfile* customer = &characters[customerIndex];
+            int demandIndex = rand() % customer->num_demands;
+            Demand currentDemand = customer->demands[demandIndex];
+
+            // 아스키 아트 그리기 (왼쪽 화면)
+            system("cls");
+            draw_ascii_art(customer->chara, 5, 0);
+            printf(COLOR_RESET);
+            Sleep(600);
+
+            // -------------------------------------------------------------------------
+            // [인게임 상호작용 UI 개편] 손님 입장 후 화려하게 바뀌는 라이브 화면
+            // -------------------------------------------------------------------------
+            Move_Cursor(82, 3);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+            Move_Cursor(82, 4);  printf("┃      "); set_color(BG_COLOR_RED); printf(" [*] 손님 받아라! [*] "); printf(COLOR_RESET); printf("       ");
+            Move_Cursor(82, 5);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+            Move_Cursor(82, 6);  printf("┃                                                       ");
+            Move_Cursor(82, 7);  printf("┃  [STATUS BOARD]                                   ");
+            Move_Cursor(82, 8);  printf("┃  - 현재 영업일 : %2d 일차                             ", state->day);
+            Move_Cursor(82, 9);  printf("┃  - 보유 자금   : %10d 원                              ", state->money);
+            Move_Cursor(82, 10); printf("┃  - 마을 만족도 : %3d / 100                            ", state->satisfaction);
+            Move_Cursor(82, 11); printf("┃                                                       ");
+            Move_Cursor(82, 12); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+
+            // 손님 정보 및 대사창 영역 (남아도는 공간 채우기)
+// 손님 정보 및 대사창 영역
+            Move_Cursor(82, 14); set_color(BG_COLOR_BrRED); printf(" ★ 손님이 원하는 약을 찾아라! ★ "); printf(COLOR_RESET);
+            Move_Cursor(82, 16); printf(" > 손님의 하소연 : ");
+
+            // ★ 헬레나님의 자동 개행 함수 사용! (40칸 제한)
+            print_dialogue_wrapped(84, 17, currentDemand.dialogue, 92);
+
+            // ==============================================================
+            // ★ 하소연이 길어질 것을 대비해 UI 전체를 3칸 아래로 밀어냄! (Y좌표 +3)
+            // ==============================================================
+            Move_Cursor(82, 22); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+            Move_Cursor(82, 23); printf("┃  [ 현재 가방 속 재고 ]");
+            Move_Cursor(82, 24);
+            printf("┃  ");
+            for (int i = 0; i < 7; i++) {
+                if (state->inventory[i] == 0) set_color(FONT_COLOR_RED);
+                else set_color(FONT_COLOR_BrGREEN);
+                printf("%s:%d ", stock[i].name, state->inventory[i]);
+            }
+            printf(COLOR_RESET);
+
+            // ==============================================================
+            // 처방전 작성 입력칸 (마찬가지로 Y좌표 +3)
+            // ==============================================================
+            Move_Cursor(82, 26); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+            Move_Cursor(82, 27); printf("┃  [처방전 작성]                                   ");
+            Move_Cursor(82, 28); printf("┃ ▶ 판매할 약 이름을 정확히 입력하세요:             ");
+            Move_Cursor(82, 29); printf("┃                                                  ");
+            Move_Cursor(82, 30); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
+
+            // 입력 커서를 새로운 처방전 입력칸(28번째 줄)으로 이동
+            Move_Cursor(123, 28);
+
+            printf("\033[?25h");
+            Force_Korean_Mode();
+            setbuf(stdin, NULL);
+            FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+            scanf_s("%49s", medicine, (unsigned)_countof(medicine));
+            while (getchar() != '\n');
+
+            // ==============================================================
+            // ★ 헬레나님의 절대 무적 판정 시스템 (재고 연동 완벽 반영)
+            // ==============================================================
+
+            // 1. 플레이어가 정답을 맞췄는지 확인
+            int is_correct = (strcmp(medicine, currentDemand.answer) == 0);
+
+            // 2. 입력한 약이 우리 카탈로그(stock)에 있는 약인지, 몇 번째 칸인지 검색
+            int item_index = -1;
+            for (int i = 0; i < 7; i++) {
+                if (strcmp(medicine, stock[i].name) == 0) {
+                    item_index = i;
+                    break;
+                }
+            }
+
+            if (is_correct) {
+                // 정답은 맞췄는데, 가방에 약이 1개 이상 있는지 검사!
+                if (item_index != -1 && state->inventory[item_index] > 0) {
+                    // ★ 진정한 처방 성공! (정답 + 재고 있음)
+                    draw_ascii_art(customer->success_chara, 5, 0);
+
+                    int profit = stock[item_index].sell_price; // 구조체에 분리해둔 판매가 적용!
+                    state->inventory[item_index] -= 1;         // 가방에서 약 1개 꺼내기
+                    state->money += profit;                    // 지갑에 돈 넣기
+                    state->satisfaction += 5;
+
+                    Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
+                    set_color(BG_COLOR_YELLOW); set_color(FONT_COLOR_BLACK);
+                    printf(" ★ 처방 성공! (+%d원 / 만족도 +5) ★ ", profit); printf(COLOR_RESET);
+                    Move_Cursor(82, 31);
+                    printf(" > %s", currentDemand.precise_success);
+                }
+                else {
+                    // ★ 재고 부족 실패! (정답은 알지만 약이 없음)
+                    draw_ascii_art(customer->fail_art_file, 5, 0);
+
+                    Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
+                    set_color(BG_COLOR_BrRED);
+                    printf(" ! 처방 실패... 재고가 부족합니다! (만족도 -5) ! "); printf(COLOR_RESET);
+
+                    // ★ 맞춤형 실패 대사 출력!
+                    Move_Cursor(82, 31);
+                    printf(" > %s", currentDemand.precise_fail);
+
+                    state->satisfaction -= 5;
+                }
+            }
+            else {
+                // ★ 완전 오답 실패! (엉뚱한 약을 처방함)
+                draw_ascii_art(customer->fail_art_file, 5, 0);
+
+                Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
+                set_color(BG_COLOR_BrRED);
+                printf(" ! 처방 실패... 잘못된 약입니다 (-3,000원 / 만족도 -5) ! "); printf(COLOR_RESET);
+
+                // ★ 맞춤형 실패 대사 출력!
+                Move_Cursor(82, 31);
+                printf(" > %s", currentDemand.precise_fail);
+
+                state->money -= 3000;
+                state->satisfaction -= 5;
+            }
+
+            // 콘솔 입력 버퍼 찌꺼기 청소
+            while (_kbhit()) _getch();
+
+            // 판정 결과 읽을 시간 3초 부여
+            Sleep(3000);
+
+
+
+
+
+
+            fflush(stdin); // 입력 스트림 청소
+            setbuf(stdin, NULL);
+
+            customer_count++;
         }
-    };
-
-    srand((unsigned int)time(NULL));
-    char* goodLines[3] = { "오! 몸이 아주 가뿐해졌어!", "역시 명의로구나.", "상태가 좋아졌군!" };
-    char* badLines[3] = { "으윽, 몸이 더 이상해졌잖아!", "잘못 준 것 같은데...", "돌팔이 녀석!" };
-
-    while (customer_count < 3) {
 
         
-        while (_kbhit()) { // 지도에서 입력하고 남은 버퍼 청소
-            _getch();
-        }
-        // -------------------------------------------------------------------------
-        // [대기 화면 UI 개편] 우측 여백을 화려한 네온 스타일 테두리와 장식으로 채움
-        // -------------------------------------------------------------------------
         system("cls");
-        set_color(FONT_COLOR_WHITE);
-
-        Move_Cursor(82, 3);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-        Move_Cursor(82, 4);  printf("┃      "); set_color(BG_COLOR_BLUE); printf(" [+] ELIAS PHARMACY [+] "); printf(COLOR_RESET); printf("");
-        Move_Cursor(82, 5);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-        Move_Cursor(82, 6);  printf("┃                                                        ");
-        Move_Cursor(82, 7);  printf("┃  [STATUS BOARD]                                     ");
-        Move_Cursor(82, 8);  printf("┃  - 현재 영업일 : "); set_color(BG_COLOR_RED); printf(" %2d 일차 ", state->day); printf(COLOR_RESET); printf("");
-        Move_Cursor(82, 9);  printf("┃  - 보유 자금   : %10d 원", state->money);
-        Move_Cursor(82, 10); printf("┃  - 마을 만족도 : [");
-        // 만족도 바(Bar) 차트 시각화 효과
-        int barcount = state->satisfaction / 10;
-        for (int b = 0; b < 10; b++) {
-            if (b < barcount) printf("■");
-            else printf(" ");
-        }
-        printf("] %3d / 100                   ", state->satisfaction);
-        Move_Cursor(82, 11); printf("┃                                                        ");
-        Move_Cursor(82, 12); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-        Move_Cursor(82, 14); printf("   [! SYSTEM MESSAGE !] ");
-        Move_Cursor(82, 15); set_color(BG_COLOR_YELLOW); set_color(FONT_COLOR_BLACK); printf("  [●] [ 대 기 중 ] 새로운 손님이 문 앞에 다다랐습니다.  "); printf(COLOR_RESET);
-        Move_Cursor(82, 17); printf("   ▶ 진행하려면 [ 엔터 키 ]를 무림의 기세로 누르십시오.");
-
-        setbuf(stdin, NULL);
-        (void)getchar();
-
-        // 손님 및 대사 무작위 선택
-        int customerIndex = rand() % 5;
-        CustomerProfile* customer = &characters[customerIndex];
-        int demandIndex = rand() % customer->num_demands;
-        Demand currentDemand = customer->demands[demandIndex];
-
-        // 아스키 아트 그리기 (왼쪽 화면)
-        system("cls");
-        draw_ascii_art(customer->chara, 5, 0);
-        printf(COLOR_RESET);
-        Sleep(600);
-
-        // -------------------------------------------------------------------------
-        // [인게임 상호작용 UI 개편] 손님 입장 후 화려하게 바뀌는 라이브 화면
-        // -------------------------------------------------------------------------
-        Move_Cursor(82, 3);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-        Move_Cursor(82, 4);  printf("┃      "); set_color(BG_COLOR_RED); printf(" [*] 손님 받아라! [*] "); printf(COLOR_RESET); printf("       ");
-        Move_Cursor(82, 5);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-        Move_Cursor(82, 6);  printf("┃                                                       ");
-        Move_Cursor(82, 7);  printf("┃  [STATUS BOARD]                                   ");
-        Move_Cursor(82, 8);  printf("┃  - 현재 영업일 : %2d 일차                             ", state->day);
-        Move_Cursor(82, 9);  printf("┃  - 보유 자금   : %10d 원                              ", state->money);
-        Move_Cursor(82, 10); printf("┃  - 마을 만족도 : %3d / 100                            ", state->satisfaction);
-        Move_Cursor(82, 11); printf("┃                                                       ");
-        Move_Cursor(82, 12); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-
-        // 손님 정보 및 대사창 영역 (남아도는 공간 채우기)
-        Move_Cursor(82, 14); set_color(BG_COLOR_BrRED); printf(" ★ 손님이 원하는 약을 찾아라! ★ "); printf(COLOR_RESET);
-        Move_Cursor(82, 16); printf(" > 손님의 하소연 : ");
-        Move_Cursor(84, 18); set_color(FONT_COLOR_BLACK); printf("\033[107m %s \033[0m", currentDemand.dialogue); // 말풍선 느낌으로 반전 강조
-
-        Move_Cursor(82, 21); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-        Move_Cursor(82, 22); printf("┃  [처방전 작성]                                   ");
-        Move_Cursor(82, 23); printf("┃ ▶ 판매할 약 이름을 정확히 입력하세요:             ");
-        Move_Cursor(82, 24); printf("┃                                                    ");
-        Move_Cursor(82, 25); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-
-        // 입력 커서를 처방전 내부로 자연스럽게 이동시킴
-        Move_Cursor(123, 23);
-
-        Force_Korean_Mode();
-        setbuf(stdin, NULL);
-        scanf_s("%49s", medicine, (unsigned)_countof(medicine));
+        Move_Cursor(40, 15);
+        printf("오늘 영업을 마감합니다. 밤이 깊었으니 집으로 돌아갑시다.");
         Force_English_Mode();
-
-        // 결과 처리 구역
-        if (strcmp(medicine, currentDemand.answer) == 0) {
-            Move_Cursor(82, 27); printf(" 【 판정 결과 】 ");
-            set_color(BG_COLOR_YELLOW); set_color(FONT_COLOR_BLACK); printf(" ★ 처방 성공! (+5,000원 / 만족도 +5) ★ "); printf(COLOR_RESET);
-            Move_Cursor(82, 29); printf(" > %s", customer->success_dialogue[rand() % 3]);
-            state->money += 5000;
-            state->satisfaction += 5;
-        }
-        else {
-            Move_Cursor(82, 27); printf(" 【 판정 결과 】 ");
-            set_color(BG_COLOR_BrRED); printf(" ! 처방 실패... (-3,000원 / 만족도 -5) ! "); printf(COLOR_RESET);
-            Move_Cursor(82, 29); printf(" > %s", customer->fail_dialogue[rand() % 3]);
-            state->money -= 3000;
-            state->satisfaction -= 5;
-        }
-
-
-        //일단 계속 넘어가져서 슬리 넣었어
-        Sleep(1500);
-
-        // 하단 여백 채우기용 안내문
-        Move_Cursor(82, 32); printf("────────────────────────────────────────────────────────");
-        Move_Cursor(82, 33); printf(" ※ 다음 손님을 맞이하려면 [ 엔터 키 ]를 누르십시오... ");
-        fflush(stdin); // 입력 스트림 청소
-        setbuf(stdin, NULL);
-        (void)getchar();
-
-        customer_count++;
+        Sleep(2000);
+        state->opend = 1;
+        return 9;
     }
-
-    state->day += 1;
-    system("cls");
-    Move_Cursor(40, 15);
-    printf("오늘 영업을 마감합니다. 밤이 깊었으니 집으로 돌아갑시다.");
-    Force_English_Mode();
-    Sleep(2000);
-    return 5;
 }
+
+
+
+
+
+
+
 
 // 크레딧 화면 함수 (1회 출력 후 ESC 대기)
 int credit_Scr() {
+    Force_English_Mode();
     int garo = 80, sero = 30; // 기본 콘솔 크기 백업
     CONSOLE_SCREEN_BUFFER_INFO gasebi;
 
@@ -616,6 +1151,12 @@ int credit_Scr() {
     return 0;
 }
 
+
+
+
+
+
+
 // 초기 로딩 및 세팅 함수
 int loading() {
     system("cls");
@@ -649,6 +1190,12 @@ int loading() {
 
     return 0;
 }
+
+
+
+
+
+
 
 // 타이틀 화면 렌더링 함수 (가로/세로 동적 중앙 정렬)
 int render_Title() {
@@ -804,6 +1351,7 @@ int render_Title() {
 
 int endings(GameState* state) {
     
+    Force_English_Mode();
     int money = state->money;
 
     //월세 실패
@@ -840,8 +1388,12 @@ int main() {
     SetConsoleCP(CP_UTF8);
     setlocale(LC_ALL, ".UTF8");
     HideCursor();
+    Force_English_Mode();
 
-    GameState player = { 1, 10000, 50 };
+
+
+    GameState player = { 1, 10000, 50, 0, {3, 3, 3, 3, 3, 3, 3} };
+
 
     while (1) {
         
@@ -880,6 +1432,8 @@ int main() {
             // `selec_Op = 0`(타이틀 화면)인 상태로 자연스럽게 되돌아감.
             break;
          case 8: selec_Op = endings(&player); break; 
+         case 9: selec_Op = game_map_night(&player); break;
+         case 10: selec_Op = drug_store(&player); break;
         }
     }
 
