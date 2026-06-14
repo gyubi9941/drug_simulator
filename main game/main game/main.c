@@ -1267,6 +1267,41 @@ int credit_Scr() {
         if (key == 27) { // ESC 키가 들어오면 비로소 루프를 깨부수고 나간다.
             break;
         }
+
+        if (key == 13) {
+
+
+            
+            //system("cls");
+            mciSendString(TEXT("open \"mp3s/hamjeong.mp3\" type mpegvideo alias esster"), NULL, 0, NULL);
+
+            FILE* title = fopen("txts/title.txt", "r");
+            char titles[1024];
+            
+            mciSendString(TEXT("setaudio esster volume to 60"), NULL, 0, NULL);
+            mciSendString(TEXT("play esster repeat"), NULL, 0, NULL);
+
+            if (title) {
+            while (fgets(titles, sizeof(titles), title) != NULL) {
+                printf("%s", titles);
+            }
+            fclose(title);
+            }
+            
+            
+            int new = _getch();
+            if (new == 27 ){
+                
+
+              
+                mciSendString(TEXT("close esster"), NULL, 0, NULL);
+
+                return 3;
+            }
+
+
+        }
+
     }
 
     system("cls");
@@ -1325,16 +1360,24 @@ int loading() {
 
 // 타이틀 화면 렌더링 함수 (가로/세로 동적 중앙 정렬)
 int render_Title() {
+
+
+
     printf("\033[?25l\033[2J");
     Force_English_Mode();
     int select = 1;
     int garo = 80, sero = 30; // 기본 콘솔 크기 예외 대비 백업
     CONSOLE_SCREEN_BUFFER_INFO gasebi;
 
+    
     Sleep(100);
 
     while (1) {
         system("cls");
+
+
+
+
         set_color(FONT_COLOR_WHITE);
 
         // 실시간으로 현재 콘솔 창의 가로(garo)와 세로(sero) 픽셀/문자 수를 획득.
@@ -1351,6 +1394,9 @@ int render_Title() {
         int topBarX = (garo - 76) / 2;
         if (topBarX < 1) topBarX = 1;
 
+
+
+        
         Move_Cursor(topBarX + 5, 2);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
         Move_Cursor(topBarX + 5, 3);  printf("┃  ■ VERSION: 1.75  │  LOCALIZATION: UTF-8  │  DESIGN BY 무리무리    ┃");
         Move_Cursor(topBarX + 5, 4);  printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
@@ -1359,19 +1405,25 @@ int render_Title() {
         // 대형 영문 타이틀 기호 배치 및 상하좌우 완전 중앙 정렬
         // 가로 너비 68칸, 타이틀부터 메뉴까지의 전체 콘텐츠 높이는 약 15칸.
         // 세로 진입점(titleY)을 (sero - 15) / 2 로 설정하여 정중앙으로 내림.
-
+        
         int titleX = (garo - 68) / 2;
         if (titleX < 1) titleX = 1;
 
         int titleY = (sero - 15) / 2;
         if (titleY < 6) titleY = 6; // 상단 바와 겹침 방지 가이드라인
         titleX = titleX + 6;
+        
+        
+        
         set_color(BG_COLOR_BrGREEN);
         Move_Cursor(titleX, titleY);     printf("######  #        #  #####  #####    #    #  #####  #    #");
         Move_Cursor(titleX, titleY + 1); printf("#       #        #  #   #  #         #  #   #   #  #    #");
         Move_Cursor(titleX, titleY + 2); printf("####    #        #  #####  #####      ##    #   #  #    #");
         Move_Cursor(titleX, titleY + 3); printf("#       #        #  #   #      #      ##    #   #  #    #");
         Move_Cursor(titleX, titleY + 4); printf("######  ######   #  #   #  #####      ##    #####  ######");
+        
+
+
 
         // 한글 서브 타이틀 정렬 (길이 약 48칸)
         int subTitleX = (garo - 48) / 2;
@@ -1383,10 +1435,16 @@ int render_Title() {
         // 중앙 조작 안내 패널 정렬 (가로 너비 62칸, 타이틀에 연동되어 내려감)
         int guideX = (garo - 62) / 2;
         int guideY = titleY + 8;
+        
+        
         set_color(FONT_COLOR_WHITE);
+
+        
         Move_Cursor(guideX + 1, guideY);     printf("┌────────────────────────────────────────────────────────────┐");
         Move_Cursor(guideX + 1, guideY + 1); printf("│   [CONTROLS] W/S : 선택 이동  │  ENTER : 결정              │");
         Move_Cursor(guideX + 1, guideY + 2); printf("└────────────────────────────────────────────────────────────┘");
+        
+
 
         // 선택 메뉴 리스트 정렬 (가로 너비 16칸 기준, 함께 아래로 안착)
         int menuX = (garo - 16) / 2;
@@ -1422,8 +1480,10 @@ int render_Title() {
         if (copyY < menuY + 6) copyY = menuY + 6;
 
         set_color(FONT_COLOR_WHITE);
+
+        
         Move_Cursor(topBarX + 5, copyY);     printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
-        Move_Cursor(copyX + 3, copyY + 1);   printf("Copyright 2026. TEAM KANGWON AI CONTENT ENG. All rights reserved.");
+        Move_Cursor(copyX + 3, copyY + 1);   printf("Copyright 2026. TEAM KANGWON AI CONTENT ENG. All rights reserved."); 
 
         // 키 입력 처리 파트 
         int input = _getch();
