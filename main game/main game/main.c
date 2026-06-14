@@ -58,6 +58,8 @@ typedef struct {
     char fail_art_file[512];
     char success_chara[256];
     char voice_file[256];
+    char success_voice[256];     // ★ 처방 성공 시 출력될 음성 경로
+    char fail_voice[256];        // ★ 처방 실패 시 출력될 음성 경로
     Demand demands[3];
     int num_demands;
 } CustomerProfile;
@@ -90,7 +92,6 @@ void HideCursor() {
     SetConsoleCursorInfo(GetStdHandle(STD_OUTPUT_HANDLE), &cursorInfo);
 }
 
-
 // 커서 위치 이동 함수
 void Move_Cursor(int x, int y) {
     printf("\033[%d;%dH", y, x);
@@ -101,6 +102,38 @@ void set_color(int code) {
     printf("\x1b[%dm", code);
 }
 
+#include <stdlib.h> // atoi 함수 사용을 위해 필요
+
+// 헬레나님의 JIT 오디오 제어기 (동적 Sleep 탑재)
+static void Play_Voice_Smart(const char* filepath, const char* alias, int need_wait) {
+    char cmd[512];
+    char length_str[128] = "0"; // 파일 길이를 받아올 문자열
+    int duration = 0;
+
+    // 1. 낡은 채널 찌꺼기 청소
+    sprintf_s(cmd, sizeof(cmd), "close %s", alias);
+    mciSendStringA(cmd, NULL, 0, NULL);
+
+    // 2. 새 파일 열기
+    sprintf_s(cmd, sizeof(cmd), "open \"%s\" type mpegvideo alias %s", filepath, alias);
+    mciSendStringA(cmd, NULL, 0, NULL);
+
+    // 3. 대기가 필요한 경우, 오디오 파일의 정확한 총 길이(밀리초)를 물어본다!
+    if (need_wait == 1) {
+        sprintf_s(cmd, sizeof(cmd), "status %s length", alias);
+        mciSendStringA(cmd, length_str, sizeof(length_str), NULL);
+        duration = atoi(length_str); // 문자를 정수(숫자)로 변환
+    }
+
+    // 4. 프로그램 멈춤 현상을 유발하는 wait 없이 일단 부드럽게 재생!
+    sprintf_s(cmd, sizeof(cmd), "play %s from 0", alias);
+    mciSendStringA(cmd, NULL, 0, NULL);
+
+    // 5. 알아낸 길이만큼만 정확하게 Sleep으로 기다려준다. (BGM은 뒤에서 계속 나옴)
+    if (need_wait == 1 && duration > 0) {
+        Sleep(duration);
+    }
+}
 
 // 자동개행
 // 시작 좌표(startX, startY)와 텍스트, 그리고 텍스트가 넘어갈 최대 너비(max_width)를 받음
@@ -320,7 +353,7 @@ void draw_sprite(int worldX, int worldY, const char* sprite[], int h, int camera
 int game_map(GameState* state) {
     Force_English_Mode();
     printf("\033[?25l\033[2J");
-    int playerX = 13;
+    int playerX = 20;
     int playerY = 26;
     int moveSpeed = 1;
 
@@ -330,7 +363,7 @@ int game_map(GameState* state) {
     draw_sprite(0, 0, SKY, 28, cameraLeftX, cameraTopY);
     draw_sprite(1, 19, HOUSE, 8, cameraLeftX, cameraTopY);
     draw_sprite(30, 19, PHARMACY, 8, cameraLeftX, cameraTopY);
-    draw_pixel(13, 26, 255, 255, 0);
+    draw_pixel(20, 26, 255, 255, 0);
 
     while (1) {
         Sleep(22);
@@ -398,7 +431,7 @@ int game_map_night(GameState* state) {
     Force_English_Mode();
     printf("\033[?25l\033[2J");
     
-    int playerX = 27;
+    int playerX = 20;
     int playerY = 26;
     int moveSpeed = 1;
 
@@ -408,7 +441,7 @@ int game_map_night(GameState* state) {
     draw_sprite(0, 0, SKY_NIGHT, 28, cameraLeftX, cameraTopY);
     draw_sprite(1, 19, HOUSE, 8, cameraLeftX, cameraTopY);
     draw_sprite(30, 19, PHARMACY, 8, cameraLeftX, cameraTopY);
-    draw_pixel(26, 26, 255, 255, 0);
+    draw_pixel(20, 26, 255, 255, 0);
 
     while (1) {
         Sleep(22);
@@ -751,7 +784,7 @@ int main_game(GameState* state) {
         // 손님 수를 2명에서 5명으로 확장, 손님이랑 대사는 원하는거로 바꾸렴.
         CustomerProfile characters[6] = {
             {
-                "txts/elena.txt", "txts/elena_fail.txt","txts/elena_ok.txt", "mp3s/voice_nomal/elena.mp3",
+                "txts/elena.txt", "txts/elena_fail.txt","txts/elena_ok.txt", "mp3s/voice_nomal/elena.mp3", "mp3s/voice_ok/elena_ok.mp3", "mp3s/voice_fail/elena_fail.mp3",
                 
                 {
                     {"엘레나: 야. 약국 주인. 머리가 너무 아파.화학식이 C8H9NO2 에다가 분자량이 151에 근접한거 좀 줘",
@@ -771,7 +804,7 @@ int main_game(GameState* state) {
                 }, 3
             },
             {
-                "txts/comi.txt", "txts/comi_fail.txt", "txts/comi_ok.txt", "mp3s/voice_nomal/comi.mp3",
+                "txts/comi.txt", "txts/comi_fail.txt", "txts/comi_ok.txt", "mp3s/voice_nomal/comi.mp3", "mp3s/voice_ok/comi_ok.mp3","mp3s/voice_fail/comi_fail.mp3",
               
                 {
                     {"코미: 하암~ 잠을 너무 잤더니 머리아파.",
@@ -792,7 +825,7 @@ int main_game(GameState* state) {
             },
             // [추가 손님 1] 네르 (그림 파일은 임시로 elena 재활용, 대사 3개 추가)
             {
-                "txts/neru.txt", "txts/neru_fail.txt", "txts/neru_ok.txt", "mp3s/voice_nomal/ner.mp3",
+                "txts/neru.txt", "txts/neru_fail.txt", "txts/neru_ok.txt", "mp3s/voice_nomal/ner.mp3", "mp3s/voice_ok/ner_ok.mp3", "mp3s/voice_fail/ner_fail.mp3",
 
                 {
                     {"네르: 어제 해당국을 너무먹어서 그런지 속이 너무 더부룩 한거 같아요.",
@@ -814,7 +847,7 @@ int main_game(GameState* state) {
             },
             // [추가 손님 2] 아야 (그림 파일은 임시로 comi 재활용, 대사 3개 추가)
             {
-                "txts/aya.txt", "txts/aya_fail.txt", "txts/aya_ok.txt", "mp3s/voice_nomal/aya.mp3",
+                "txts/aya.txt", "txts/aya_fail.txt", "txts/aya_ok.txt", "mp3s/voice_nomal/aya.mp3", "mp3s/voice_ok/aya_ok.mp3","mp3s/voice_fail/aya_fail.mp3",
 
                 {
                     {"아야: 어제 너무 격렬하게 움직여서 몸이 달아올랐어..",
@@ -836,7 +869,7 @@ int main_game(GameState* state) {
             },
             // [추가 손님 3] 림 (그림 파일은 임시로 elena 재활용, 대사 3개 추가)
             {
-                "txts/rim2.txt", "txts/rim_fail.txt", "txts/rim_ok.txt", "mp3s/voice_nomal/rim.mp3",
+                "txts/rim2.txt", "txts/rim_fail.txt", "txts/rim_ok.txt", "mp3s/voice_nomal/rim.mp3","mp3s/voice_ok/rim_ok.mp3","mp3s/voice_fail/rim_fail.mp3",
 
                 {
                     {"림: 재치있는 나는..엣취!..",
@@ -857,7 +890,7 @@ int main_game(GameState* state) {
             },
 
             {
-              "txts/spiki.txt", "txts/spiki_fail.txt", "txts/spiki_ok.txt", "mp3s/voice_nomal/speaki.mp3",
+              "txts/spiki.txt", "txts/spiki_fail.txt", "txts/spiki_ok.txt", "mp3s/voice_nomal/spiki.mp3", "mp3s/voice_ok/spiki_ok.mp3","mp3s/voice_fail/spiki_fail.mp3",
 
                 {
                     {"스핔이: 스핔이!", "회복포션", "스핔이: 쪼아요!", "스핔이: 흐에에엥"},
@@ -873,14 +906,7 @@ int main_game(GameState* state) {
 
 
 
-        char mci_command[512]; // 명령어 도화지
 
-        // ★ 헬레나님의 사전 적재(Pre-load) 시스템
-        // 장사 시작 전에 6명의 목소리를 미리 다 열어서 대기시킨다!
-        for (int i = 0; i < 6; i++) {
-            sprintf_s(mci_command, sizeof(mci_command), "open \"%s\" type mpegvideo alias voice_%d", characters[i].voice_file, i);
-            mciSendStringA(mci_command, NULL, 0, NULL);
-        }
 
 
         time_t start_time = time(NULL); // 영업 시작 시간 기록
@@ -959,7 +985,9 @@ int main_game(GameState* state) {
             int demandIndex = rand() % customer->num_demands;
             Demand currentDemand = customer->demands[demandIndex];
 
-           
+
+
+
             
             // 아스키 아트 그리기 (왼쪽 화면)
             system("cls");
@@ -969,9 +997,16 @@ int main_game(GameState* state) {
 
 
 
-            // ★ 헬레나님의 빛의 속도 재생! (open 없음, 딜레이 없음)
-            sprintf_s(mci_command, sizeof(mci_command), "play voice_%d from 0", customerIndex);
-            mciSendStringA(mci_command, NULL, 0, NULL);
+            // ... (손님 랜덤 선택 및 아스키아트 출력) ...
+
+                        // 이전 찌꺼기 닫기 (메모리 최적화)
+            mciSendStringA("close voice_in", NULL, 0, NULL);
+            mciSendStringA("close voice_out", NULL, 0, NULL);
+
+            // 0을 주어 화면 멈춤 없이 배경에서 입장 대사 재생
+            Play_Voice_Smart(customer->voice_file, "voice_in", 0);
+
+
 
 
 
@@ -1003,8 +1038,8 @@ int main_game(GameState* state) {
             // ==============================================================
             Move_Cursor(82, 22); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
             Move_Cursor(82, 23); printf("┃  [ 현재 가방 속 재고 ]");
-            Move_Cursor(82, 24); printf("◆");
-            printf("┃  ");
+            Move_Cursor(82, 24); printf("┃");
+            Move_Cursor(82, 25); printf("┃");
             for (int i = 0; i < 7; i++) {
                 if (state->inventory[i] == 0) set_color(FONT_COLOR_RED);
                 else set_color(FONT_COLOR_BrGREEN);
@@ -1057,29 +1092,45 @@ int main_game(GameState* state) {
                     draw_ascii_art(customer->success_chara, 5, 0);
 
                     int profit = stock[item_index].sell_price; // 구조체에 분리해둔 판매가 적용!
+                    Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
+                    set_color(BG_COLOR_YELLOW); set_color(FONT_COLOR_BLACK);
+                    printf(" ★ 처방 성공! (+%d원 / 만족도 +5) ★ ", profit); printf(COLOR_RESET);
+                    Move_Cursor(82, 31);
+                    printf(" > %s", currentDemand.precise_success);
+
+
+                    mciSendStringA("close voice_in", NULL, 0, NULL);
+
+                    // 1을 주어 성공 음성의 길이만큼 칼같이 대기하고 루프를 넘김!
+                    Play_Voice_Smart(customer->success_voice, "voice_out", 1);
+
                     state->inventory[item_index] -= 1;         // 가방에서 약 1개 꺼내기
                     state->money += profit;                    // 지갑에 돈 넣기
                     if (state->satisfaction < 100) {
                     state->satisfaction += 5;
                     }
 
-                    Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
-                    set_color(BG_COLOR_YELLOW); set_color(FONT_COLOR_BLACK);
-                    printf(" ★ 처방 성공! (+%d원 / 만족도 +5) ★ ", profit); printf(COLOR_RESET);
-                    Move_Cursor(82, 31);
-                    printf(" > %s", currentDemand.precise_success);
                 }
                 else {
                     // ★ 재고 부족 실패! (정답은 알지만 약이 없음)
                     draw_ascii_art(customer->fail_art_file, 5, 0);
 
-                    Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
+                    Move_Cursor(82, 29); printf("【 판정 결과 】");
                     set_color(BG_COLOR_BrRED);
                     printf(" ! 처방 실패... 재고가 부족합니다! (만족도 -10) ! "); printf(COLOR_RESET);
 
                     // ★ 맞춤형 실패 대사 출력!
                     Move_Cursor(82, 31);
                     printf(" > %s", currentDemand.precise_fail);
+
+                   
+                    // 화면 출력이 끝났으니, 입장 목소리를 즉시 끊고 실패 음성 재생
+                    mciSendStringA("close voice_in", NULL, 0, NULL);
+
+                    // 1을 주어 실패 음성의 길이만큼 칼같이 대기하고 루프를 넘김!
+                    Play_Voice_Smart(customer->fail_voice, "voice_out", 1);
+
+
 
                     if (state->satisfaction != 0) {
                     state->satisfaction -= 10;
@@ -1092,15 +1143,22 @@ int main_game(GameState* state) {
             else {
                 // ★ 완전 오답 실패! (엉뚱한 약을 처방함)
                 draw_ascii_art(customer->fail_art_file, 5, 0);
-
-                Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
-                set_color(BG_COLOR_BrRED);
-                printf(" ! 처방 실패... 잘못된 약입니다 (- 1,500원 / 만족도 -10) ! "); printf(COLOR_RESET);
+           
 
                 // ★ 맞춤형 실패 대사 출력!
                 Move_Cursor(82, 31);
                 printf(" > %s", currentDemand.precise_fail);
 
+                Move_Cursor(82, 29); printf("【 판정 결과 】");
+                set_color(BG_COLOR_BrRED);
+                printf(" ! 처방 실패... 잘못된 약입니다 (- 1,500원 / 만족도 -10) ! "); printf(COLOR_RESET);
+
+                // 화면 출력이 끝났으니, 입장 목소리를 즉시 끊고 실패 음성 재생
+                mciSendStringA("close voice_in", NULL, 0, NULL);
+
+                // 1을 주어 실패 음성의 길이만큼 칼같이 대기하고 루프를 넘김!
+                Play_Voice_Smart(customer->fail_voice, "voice_out", 1);
+                
                 state->money -= 1500;
                 if (state->satisfaction != 0) {
                     state->satisfaction -= 10;
@@ -1114,11 +1172,7 @@ int main_game(GameState* state) {
             while (_kbhit()) _getch();
 
             // 판정 결과 읽을 시간 3초 부여
-            Sleep(3000);
-
-
-
-
+           // Sleep(3000);
 
 
             fflush(stdin); // 입력 스트림 청소
