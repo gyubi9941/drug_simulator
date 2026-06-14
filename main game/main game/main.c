@@ -237,8 +237,6 @@ void draw_pixel(int x, int y, int r, int g, int b) {
     printf("\033[%d;%dH\033[48;2;%d;%d;%dm  \033[0m", y + 1, (x * 2) + 1, r, g, b);
 }
 
-// 폰트 색상 변경 함수
-
 
 // 스프라이트 데이터 (상수)
 const char* PHARMACY[] = {
@@ -424,7 +422,7 @@ int game_map(GameState* state) {
     }
 }
 
-// 인게임 마을 맵 함수
+// 인게임 마을 맵 함수 (밤)
 int game_map_night(GameState* state) {
 
     Force_English_Mode();
@@ -588,7 +586,7 @@ int house(GameState* state) {
         if ((input == 'd' || input == 'D') && selectX != 2) selectX += 1;
         // 엔터키(13) 입력 시 처리 (GetAsyncKeyState 혼용 버그 제거)
         if (input == 13) {
-            if (selectX == 1 && selectY == 1) {
+            if (selectX == 1 && selectY == 1) { // 잠을 잔다
                 state->day += 1;
                 state->opend = 0;
                 system("cls");
@@ -599,14 +597,14 @@ int house(GameState* state) {
                 mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
                 return 5;
             }
-            if (selectX == 2 && selectY == 1) {
+            if (selectX == 2 && selectY == 1) { // 피아노를 연주한다
                 mciSendString(TEXT("pause Room-bgm"), NULL, 128, NULL);
                 mciSendString(TEXT("play piano"), NULL, 128, NULL);
                 Sleep(4700);
                 mciSendString(TEXT("seek piano to start"), NULL, 0, NULL);
                 mciSendString(TEXT("resume Room-bgm"), NULL, 128, NULL);
             }
-            if (selectX == 1 && selectY == 2) {
+            if (selectX == 1 && selectY == 2) { // 밖으로 나간다
                 mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
                 mciSendString(TEXT("seek Room-bgm to start"), NULL, 0, NULL);
                 if(state->opend == 1){
@@ -616,7 +614,7 @@ int house(GameState* state) {
                     return 4;
                 }
             }
-            if (selectX == 2 && selectY == 2) {
+            if (selectX == 2 && selectY == 2) { // 당일 배송 머시깽이
                 return 10;
             }
 
@@ -755,6 +753,7 @@ int drug_store(GameState* state) {
 int game_Start() {
     mciSendString(TEXT("close myBgm"), NULL, 0, NULL);
     system("cls");
+    // 스토리 작성 부분
     Sleep(1000);
     return 5;
 }
@@ -1317,7 +1316,7 @@ int credit_Scr() {
 int loading() {
     system("cls");
     Move_Cursor(10, 5); printf("본 게임은 전체화면으로 플레이하는 것을 전제로 제작되었습니다 F11로 전체화면으로 전환해주시길 바랍니다.");
-    Move_Cursor(10, 6); printf("또한 선택창 이동은 영문 약 이름 적기는 한글을 사용합니다.");
+   // Move_Cursor(10, 6); printf("또한 선택창 이동은 영문 약 이름 적기는 한글을 사용합니다.");
     Move_Cursor(10, 7); printf("이를 이해 하였으면 엔터 키를 눌러주십시오.");
     setbuf(stdin, NULL);
     (void)getchar();
