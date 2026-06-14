@@ -796,7 +796,7 @@ int game_Start() {
     system("cls");
     printf("\033[?25l"); // 연출을 위해 커서 숨기기
 
-    int center_x = 15; // 중앙 정렬을 위한 X축 시작점
+    int center_x = 36; // 중앙 정렬을 위한 X축 시작점
 
     // === 1. 테두리 상자 연출 ===
    /* Move_Cursor(center_x, 8);  printf("┌────────────────────────────────────────────────────────┐");
@@ -808,19 +808,19 @@ int game_Start() {
     */
     // === 2. 4초 간격 스토리 순차 출력 ===
     // 1번째 줄
-    Move_Cursor(center_x + 4, 11);
+    Move_Cursor(center_x + 14, 11);
     set_color(36); // 청록색 글자 강조
     printf("엘리아스에서 약국을 운영중인 당신...");
     printf(COLOR_RESET);
     Sleep(1500);
 
     // 2번째 줄
-    Move_Cursor(center_x + 4, 13);
+    Move_Cursor(center_x + 14, 13);
     printf("악덕 집주인에게 다음 달 월세 12만원을 요구 받았다.");
     Sleep(1500);
 
     // 3번째 줄
-    Move_Cursor(center_x + 4, 15);
+    Move_Cursor(center_x + 14, 15);
     set_color(91); // 약간의 위기감을 주는 밝은 빨간색
     printf("남은 10일간 열심히 돈을 모으자!");
     printf(COLOR_RESET);
@@ -830,7 +830,7 @@ int game_Start() {
 
 
     // === 3. 모든 스토리 출력 후 엔터 대기 UI ===
-    Move_Cursor(center_x + 14, 21);
+    Move_Cursor(center_x + 35, 21);
     set_color(BG_COLOR_YELLOW); // 노란색 바형태의 가이드
     set_color(FONT_COLOR_BLACK);
     printf(" [ Press ENTER to Continue ] ");
