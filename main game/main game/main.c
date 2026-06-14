@@ -1661,7 +1661,7 @@ int endings(GameState* state) {
         Sleep(10000);
         
         money = 10000;
-        return 0;
+        return -1;
     }
 
 
@@ -1683,7 +1683,7 @@ int endings(GameState* state) {
         Sleep(10000);
 
         money = 10000;
-        return 0;
+        return -1;
     }
 
 
@@ -1706,7 +1706,7 @@ int endings(GameState* state) {
         
         Sleep(10000);
         money = 10000;
-        return 0;
+        return -1;
     }
 
 
