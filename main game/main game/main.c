@@ -632,53 +632,93 @@ int drug_store(GameState* state) {
     while (1) {
         system("cls");
 
-
-        Move_Cursor(2, 18);
-        printf("보유 재고: ");
-        Move_Cursor(12, 18);
-        for (int i = 0; i < 7; i++) {
-            if (state->inventory[i] == 0) set_color(FONT_COLOR_RED);
-            else set_color(FONT_COLOR_BrGREEN);
-            printf("보유 재고: %s:%d ", stock[i].name, state->inventory[i]);
-
-        }
+        // === 1. 상단 타이틀 바 및 자금 정보 ===
+        Move_Cursor(2, 2);
+        set_color(BG_COLOR_BLUE);
+        printf("[ 당일 발송 약사 몰 - SHOP ] ");
         printf(COLOR_RESET);
 
+        Move_Cursor(45, 2);
+        printf("💳 보유 자금: ");
+        set_color(FONT_COLOR_BrGREEN);
+        printf("%d", state->money);
+        printf(COLOR_RESET);
+        printf(" 골드");
 
+        Move_Cursor(2, 3);
+        printf("==========================================================================");
 
-        Move_Cursor(2, 2);
-        printf("=== [ 상점 구매 창 ] ===");
-        Move_Cursor(2, 4);
-        printf("보유 자금: %d 골드", state->money);
+        // === 2. 중앙 약품 목록 출력 구역 ===
+        Move_Cursor(2, 5);
+        printf("   %-14s | %-10s | %s", "약품 명칭", "가격(구매가)", "구매 설정 상태");
+        Move_Cursor(2, 6);
+        printf("--------------------------------------------------------------------------");
 
-        // ★ 헬레나님의 우아한 배열 출력 로직 (하드코딩 금지!)
         for (int i = 0; i < 7; i++) {
-            Move_Cursor(2, 6 + i);
+            Move_Cursor(2, 7 + i);
 
             // 현재 내 커서(selectY)가 위치한 약이라면?
             if (i == selectY) {
-                set_color(BG_COLOR_BLUE); // 하이라이트 효과
-                printf(" ▶ %s : %d 골드 ", stock[i].name, stock[i].buy_price);
-
-                // 게다가 수량 선택 모드(drug_select == 1)라면 개수 조절 UI 추가!
-                if (drug_select == 1) {
-                    printf("   [ 수량: ◀ %2d ▶ ] ", selectX);
+                // 약 선택 모드와 수량 선택 모드일 때의 하이라이트 색상 반전 차별화
+                if (drug_select == 0) {
+                    printf("\x1b[46;30m ▶ %-12s \x1b[0m | ", stock[i].name); // 하늘색 배경
                 }
+                else {
+                    printf("\x1b[43;30m ▶ %-12s \x1b[0m | ", stock[i].name); // 노란색 배경 (수량 조절 중)
+                }
+
+                set_color(FONT_COLOR_BrGREEN);
+                printf("%6d 골드 ", stock[i].buy_price);
                 printf(COLOR_RESET);
+                printf(" | ");
+
+                // 수량 선택 모드(drug_select == 1)라면 개수 조절 UI를 더 예쁘게 출력
+                if (drug_select == 1) {
+                    printf(" 수량 조정: \x1b[91m[-]\x1b[0m \x1b[1m%2d\x1b[0m \x1b[92m[+]\x1b[0m (Enter로 확정)", selectX);
+                }
+                else {
+                    printf(" \x1b[90m[ Enter를 누르면 수량 선택 ]\x1b[0m");
+                }
             }
-            // 커서가 없는 나머지 약들은 평범하게 출력
+            // 커서가 없는 나머지 약들은 깔끔하게 정렬하여 평범하게 출력
             else {
-                printf("    %s : %d 골드 ", stock[i].name, stock[i].buy_price);
+                printf("    %-12s | %6d 골드  | ", stock[i].name, stock[i].buy_price);
             }
         }
 
-        // 조작키 안내
         Move_Cursor(2, 15);
+        printf("==========================================================================");
+
+        // === 3. 하단 실시간 가방 재고 현황 구역 ===
+        Move_Cursor(2, 16);
+        printf("🎒 [ 현재 내 가방 보관 재고 ]");
+
+        Move_Cursor(2, 17);
+        printf("┌────────────────────────────────────────────────────────────────────────┐");
+        Move_Cursor(2, 18);
+        printf("│ ");
+        for (int i = 0; i < 7; i++) {
+            if (state->inventory[i] == 0) {
+                printf("%s:\x1b[90m%d\x1b[0m ", stock[i].name, state->inventory[i]); // 없으면 어둡게
+            }
+            else {
+                printf("%s:\x1b[92m%d\x1b[0m ", stock[i].name, state->inventory[i]); // 있으면 초록색 강조
+            }
+            if (i < 6) printf("│ ");
+        }
+        printf("│");
+        Move_Cursor(2, 19);
+        printf("└────────────────────────────────────────────────────────────────────────┘");
+
+        // === 4. 시스템 조작 가이드 라인 ===
+        Move_Cursor(2, 21);
+        set_color(FONT_COLOR_BLACK);
+        printf("\x1b[107m 시스템 안내 \x1b[0m ");
         if (drug_select == 0) {
-            printf("[ W/S : 위아래 이동 ]  [ Enter : 수량 선택 ]  [ ESC : 상점 나가기 ]");
+            printf("\x1b[97m[W/S] 위아래 이동  |  [Enter] 수량 조절 진입  |  [ESC] 몰 종료 및 나가기\x1b[0m");
         }
         else {
-            printf("[ A/D : 수량 조절 ]  [ Enter : 구매 확정 ]  [ ESC : 선택 취소 ]");
+            printf("\x1b[93m[A/D] 수량 증감  |  [Enter] 최종 결제 및 구매  |  [ESC] 수량 선택 취소\x1b[0m");
         }
 
         // 입력 찌꺼기 소각
@@ -707,44 +747,44 @@ int drug_store(GameState* state) {
 
         // 2. Enter 키 처리 (13)
         if (input == 13) {
-            if (drug_select == 0) {
-                // 아직 약만 골랐다면 수량 모드로 진입
+            if (drug_select == 0) { // 아직 약만 골랐다면 수량 모드로 진입
                 drug_select = 1;
                 selectX = 1; // 개수는 무조건 1개부터 시작
             }
-            else {
-                // 수량까지 다 고르고 엔터를 쳤다면 구매 확정!
+            else { // 수량까지 다 고르고 엔터를 쳤다면 구매 확정!
                 int total_cost = stock[selectY].buy_price * selectX;
-
                 if (state->money >= total_cost) {
-                    state->money -= total_cost;          // 지갑에서 돈 빼고
+                    state->money -= total_cost; // 지갑에서 돈 빼고
                     state->inventory[selectY] += selectX; // 가방에 약 넣기!
 
-                    Move_Cursor(2, 17);
-                    printf("%s %d개를 %d골드에 구매했다!", stock[selectY].name, selectX, total_cost);
+                    Move_Cursor(2, 23);
+                    set_color(BG_COLOR_BrGREEN);
+                    printf(" [성공] %s %d개를 %d골드에 정상 구매했습니다! ", stock[selectY].name, selectX, total_cost);
+                    printf(COLOR_RESET);
+
                     Sleep(1000); // 1초간 보여줌
                     drug_select = 0; // 구매 끝났으니 다시 기본 상태로 복귀
                 }
                 else {
-                    Move_Cursor(2, 17);
-                    printf("잔고가 부족합니다");
+                    Move_Cursor(2, 23);
+                    set_color(BG_COLOR_RED);
+                    printf(" [오류] 잔고가 부족합니다. (부족한 금액: %d 골드) ", total_cost - state->money);
+                    printf(COLOR_RESET);
+
                     Sleep(1000);
                 }
             }
         }
 
         // 3. 이동 키 처리 (상태에 따라 제한 구역을 완벽하게 통제)
-        if (drug_select == 0) {
-            // 약 선택 모드일 때는 위아래(W/S)만 가능하게 통제 (0 ~ 6번 방어)
+        if (drug_select == 0) { // 약 선택 모드일 때는 위아래(W/S)만 가능하게 통제 (0 ~ 6번 방어)
             if ((input == 'w' || input == 'W') && selectY > 0) selectY--;
             if ((input == 's' || input == 'S') && selectY < 6) selectY++;
         }
-        else {
-            // 수량 선택 모드일 때는 좌우(A/D)만 가능하게 통제 (1개 ~ 99개)
+        else { // 수량 선택 모드일 때는 좌우(A/D)만 가능하게 통제 (1개 ~ 99개)
             if ((input == 'a' || input == 'A') && selectX > 1) selectX--;
             if ((input == 'd' || input == 'D') && selectX < 99) selectX++;
         }
-
     }
 }
 
@@ -959,8 +999,8 @@ int main_game(GameState* state) {
                 Move_Cursor(82, 7);  printf("┃  [STATUS BOARD]                                     ");
                 Move_Cursor(82, 8);  printf("┃  - 현재 영업일 : "); set_color(BG_COLOR_RED); printf(" %2d 일차 ", state->day); printf(COLOR_RESET); printf("");
                 Move_Cursor(82, 9);  printf("┃  - 보유 자금   : %10d 원", state->money);
-                Move_Cursor(82, 10); printf("┃  - 마을 만족도 : [");
-                // 만족도 바(Bar) 차트 시각화 효과
+                Move_Cursor(82, 10); printf("┃  - 마을 명성도 : [");
+                // 명성도 바(Bar) 차트 시각화 효과
                 int barcount = state->satisfaction / 10;
                 for (int b = 0; b < 10; b++) {
                     if (b < barcount) printf("■");
@@ -1019,7 +1059,7 @@ int main_game(GameState* state) {
             Move_Cursor(82, 7);  printf("┃  [STATUS BOARD]                                   ");
             Move_Cursor(82, 8);  printf("┃  - 현재 영업일 : %2d 일차                             ", state->day);
             Move_Cursor(82, 9);  printf("┃  - 보유 자금   : %10d 원                              ", state->money);
-            Move_Cursor(82, 10); printf("┃  - 마을 만족도 : %3d / 100                            ", state->satisfaction);
+            Move_Cursor(82, 10); printf("┃  - 마을 명성도 : %3d / 100                            ", state->satisfaction);
             Move_Cursor(82, 11); printf("┃                                                       ");
             Move_Cursor(82, 12); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
 
@@ -1092,7 +1132,7 @@ int main_game(GameState* state) {
                     int profit = stock[item_index].sell_price; // 구조체에 분리해둔 판매가 적용!
                     Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
                     set_color(BG_COLOR_YELLOW); set_color(FONT_COLOR_BLACK);
-                    printf(" ★ 처방 성공! (+%d원 / 만족도 +5) ★ ", profit); printf(COLOR_RESET);
+                    printf(" ★ 처방 성공! (+%d원 / 명성도 +5) ★ ", profit); printf(COLOR_RESET);
                     Move_Cursor(82, 31);
                     printf(" > %s", currentDemand.precise_success);
 
@@ -1115,7 +1155,7 @@ int main_game(GameState* state) {
 
                     Move_Cursor(82, 29); printf("【 판정 결과 】");
                     set_color(BG_COLOR_BrRED);
-                    printf(" ! 처방 실패... 재고가 부족합니다! (만족도 -10) ! "); printf(COLOR_RESET);
+                    printf(" ! 처방 실패... 재고가 부족합니다! (명성도 -10) ! "); printf(COLOR_RESET);
 
                     // ★ 맞춤형 실패 대사 출력!
                     Move_Cursor(82, 31);
@@ -1149,7 +1189,7 @@ int main_game(GameState* state) {
 
                 Move_Cursor(82, 29); printf("【 판정 결과 】");
                 set_color(BG_COLOR_BrRED);
-                printf(" ! 처방 실패... 잘못된 약입니다 (- 1,500원 / 만족도 -10) ! "); printf(COLOR_RESET);
+                printf(" ! 처방 실패... 잘못된 약입니다 (- 1,500원 / 명성도 -10) ! "); printf(COLOR_RESET);
 
                 // 화면 출력이 끝났으니, 입장 목소리를 즉시 끊고 실패 음성 재생
                 mciSendStringA("close voice_in", NULL, 0, NULL);
