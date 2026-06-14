@@ -9,6 +9,7 @@
 #include <mmsystem.h>                    // 사운드 재생에 필요한 라이브러리 링크
 #include <string.h> 
 
+#pragma comment(lib, "imm32.lib")
 #pragma execution_character_set("utf-8") // 하행 문자열들을 UTF-8 형식으로 인코딩후 저장하라는 전처리 명령
 #pragma comment(lib, "winmm.lib")        // MSVC 컴파일러용 라이브러리 링크
 
@@ -56,6 +57,7 @@ typedef struct {
     char chara[256];
     char fail_art_file[512];
     char success_chara[256];
+    char voice_file[256];
     Demand demands[3];
     int num_demands;
 } CustomerProfile;
@@ -69,13 +71,13 @@ typedef struct {
 
 // 구조체 선언들 밑에, 함수들 시작하기 전 빈 공간에 선언해!
 Medicine stock[7] = {
-    {"두통약", 3000, 1500},
-    {"소화제", 2500, 1500},
+    {"두통약", 1700, 500},
+    {"소화제", 6500, 2300},
     {"회복포션", 1500, 500},
-    {"해독제", 10000, 5000},
+    {"해독제", 15000, 5000},
     {"해열제", 4000, 2000},
     {"수면제", 4500, 2000},
-    {"감기약", 8000, 4000}
+    {"감기약", 7500, 2000}
 };
 
 
@@ -146,57 +148,37 @@ void print_dialogue_wrapped(int startX, int startY, const char* text, int max_wi
 }
 
 
+//★ 전역 변수 : 뜯어낸 한글 입력기를 잠시 보관할 금고
+static HIMC g_hOriginalImc = NULL;
 
+// 1. 헬레나님의 무자비한 영문 고정기 (IME 적출)
 void Force_English_Mode() {
-    // 게임 실행 중에 윈도우의 한글 입력기 창고(dll)를 강제로 열어버림!
-    HMODULE hImm = LoadLibrary(TEXT("imm32.dll"));
-    if (hImm != NULL) {
-        typedef HIMC(WINAPI* GETCONTEXT)(HWND);
-        typedef BOOL(WINAPI* RELEASECONTEXT)(HWND, HIMC);
-        typedef BOOL(WINAPI* SETSTATUS)(HIMC, DWORD, DWORD);
+    HWND hwnd = GetConsoleWindow();
 
-        GETCONTEXT getCtx = (GETCONTEXT)GetProcAddress(hImm, "ImmGetContext");
-        RELEASECONTEXT relCtx = (RELEASECONTEXT)GetProcAddress(hImm, "ImmReleaseContext");
-        SETSTATUS setStat = (SETSTATUS)GetProcAddress(hImm, "ImmSetConversionStatus");
+    // 현재 창에 달려있는 입력기를 NULL로 덮어씌워서 강제로 뜯어내 버린다!
+    HIMC currentImc = ImmAssociateContext(hwnd, NULL);
 
-        if (getCtx && relCtx && setStat) {
-            HWND hwnd = GetConsoleWindow();
-            HIMC himc = getCtx(hwnd);
-            // 0 = IME_CMODE_ALPHANUMERIC (완벽한 순수 영문 모드)
-            setStat(himc, 0, 0);
-            relCtx(hwnd, himc);
-        }
-        FreeLibrary(hImm); // 일 다 했으니 창고 문 닫기
+    // 만약 성공적으로 뜯어냈다면, 나중에 돌려주기 위해 금고에 보관해 둔다.
+    if (currentImc != NULL) {
+        g_hOriginalImc = currentImc;
     }
 }
 
-// 헬레나님의 절대 무적 한글 모드 강제 변환기
-void Force_Korean_Mode() {
-    HMODULE hImm = LoadLibrary(TEXT("imm32.dll"));
-    if (hImm != NULL) {
-        typedef HIMC(WINAPI* GETCONTEXT)(HWND);
-        typedef BOOL(WINAPI* RELEASECONTEXT)(HWND, HIMC);
-        typedef BOOL(WINAPI* SETSTATUS)(HIMC, DWORD, DWORD);
+// 2. 헬레나님의 입력기 복구 (약 처방할 때만 사용)
+void Restore_IME() {
+    HWND hwnd = GetConsoleWindow();
 
-        GETCONTEXT getCtx = (GETCONTEXT)GetProcAddress(hImm, "ImmGetContext");
-        RELEASECONTEXT relCtx = (RELEASECONTEXT)GetProcAddress(hImm, "ImmReleaseContext");
-        SETSTATUS setStat = (SETSTATUS)GetProcAddress(hImm, "ImmSetConversionStatus");
-
-        if (getCtx && relCtx && setStat) {
-            HWND hwnd = GetConsoleWindow();
-            HIMC himc = getCtx(hwnd);
-            // 1 = IME_CMODE_NATIVE (완벽한 순수 한글 모드)
-            setStat(himc, 1, 0);
-            relCtx(hwnd, himc);
-        }
-        FreeLibrary(hImm);
+    // 금고에 보관해둔 원래 입력기가 있다면?
+    if (g_hOriginalImc != NULL) {
+        // 창문에 다시 입력기를 예쁘게 달아준다!
+        ImmAssociateContext(hwnd, g_hOriginalImc);
+        g_hOriginalImc = NULL; // 금고 비우기
     }
 }
-
-
 
 
 // 아스키 아트 그리기 함수
+
 void draw_ascii_art(const char* filepath, int startX, int startY) {
     FILE* fp = fopen(filepath, "r");
     char line[4096];
@@ -412,9 +394,10 @@ int game_map(GameState* state) {
 
 // 인게임 마을 맵 함수
 int game_map_night(GameState* state) {
+
     Force_English_Mode();
     printf("\033[?25l\033[2J");
-    Force_English_Mode();
+    
     int playerX = 27;
     int playerY = 26;
     int moveSpeed = 1;
@@ -470,7 +453,7 @@ int game_map_night(GameState* state) {
         Move_Cursor(1, SCR_H + 2);
         printf("======================================================");
         Move_Cursor(1, SCR_H + 3);
-        printf("POSITION : (%3d, %3d) | DAY : %d | MONEY : %d원    ", playerX, playerY, state->day, state->money);
+        printf("이동 : A == D | DAY : %d | MONEY : %d원    ",state->day, state->money);
 
         if (playerX <= 10) { // 집으로 입장 조건 완화
             printf("\033[?25h\033[2J\033[1;1H");
@@ -510,6 +493,9 @@ int house(GameState* state) {
         _getch();
     }
 
+
+
+
     while (1) {
         // UI 출력 최적화
         Move_Cursor(55, 34);
@@ -527,6 +513,17 @@ int house(GameState* state) {
         Move_Cursor(90, 36);
         if (selectX == 2 && selectY == 2) { set_color(BG_COLOR_YELLOW); printf("4.당일 발송 약사 몰"); printf(COLOR_RESET); }
         else printf("4.당일 발송 약사 몰");
+
+
+        Move_Cursor(40, 39);
+        printf("보유 재고: ");
+        Move_Cursor(50, 39);
+        for (int i = 0; i < 7; i++) {
+            if (state->inventory[i] == 0) set_color(FONT_COLOR_RED);
+            else set_color(FONT_COLOR_BrGREEN);
+            printf("%s:%d ", stock[i].name, state->inventory[i]);
+        }
+            printf(COLOR_RESET);
 
         int input = _getch(); // 키보드 입력 받기
 
@@ -580,7 +577,12 @@ int house(GameState* state) {
             if (selectX == 1 && selectY == 2) {
                 mciSendString(TEXT("stop Room-bgm"), NULL, 128, NULL);
                 mciSendString(TEXT("seek Room-bgm to start"), NULL, 0, NULL);
-                return 4;
+                if(state->opend == 1){
+                return 9;
+                }
+                else {
+                    return 4;
+                }
             }
             if (selectX == 2 && selectY == 2) {
                 return 10;
@@ -599,6 +601,20 @@ int drug_store(GameState* state) {
 
     while (1) {
         system("cls");
+
+
+        Move_Cursor(2, 18);
+        printf("보유 재고: ");
+        Move_Cursor(12, 18);
+        for (int i = 0; i < 7; i++) {
+            if (state->inventory[i] == 0) set_color(FONT_COLOR_RED);
+            else set_color(FONT_COLOR_BrGREEN);
+            printf("보유 재고: %s:%d ", stock[i].name, state->inventory[i]);
+
+        }
+        printf(COLOR_RESET);
+
+
 
         Move_Cursor(2, 2);
         printf("=== [ 상점 구매 창 ] ===");
@@ -681,7 +697,7 @@ int drug_store(GameState* state) {
                 }
                 else {
                     Move_Cursor(2, 17);
-                    printf("돈이 부족하잖아! 거지 녀석아!");
+                    printf("잔고가 부족합니다");
                     Sleep(1000);
                 }
             }
@@ -698,6 +714,7 @@ int drug_store(GameState* state) {
             if ((input == 'a' || input == 'A') && selectX > 1) selectX--;
             if ((input == 'd' || input == 'D') && selectX < 99) selectX++;
         }
+
     }
 }
 
@@ -712,9 +729,21 @@ int game_Start() {
 
 // 약국 영업 로직 함수
 int main_game(GameState* state) {
-    Force_English_Mode();
+    
+
+    if (state->opend == 1)
+    {
+        printf("더 영업하기엔 늦었다 돌아가자");
+        return 9;
+    }
+
 
     if (state->opend == 0) {
+
+        mciSendString(TEXT("setaudio drug volume to 70"), NULL, 0, NULL);
+        mciSendString(TEXT("open \"mp3s/drugmp3.mp3\" type mpegvideo alias drug"), NULL, 0, NULL);
+
+        mciSendString(TEXT("play drug repeat"), NULL, 0, NULL);
         char medicine[50];
         int customer_count = 0;
 
@@ -722,7 +751,7 @@ int main_game(GameState* state) {
         // 손님 수를 2명에서 5명으로 확장, 손님이랑 대사는 원하는거로 바꾸렴.
         CustomerProfile characters[6] = {
             {
-                "txts/elena.txt", "txts/elena_fail.txt","txts/elena_ok.txt",
+                "txts/elena.txt", "txts/elena_fail.txt","txts/elena_ok.txt", "mp3s/voice_nomal/elena.mp3",
                 
                 {
                     {"엘레나: 야. 약국 주인. 머리가 너무 아파.화학식이 C8H9NO2 에다가 분자량이 151에 근접한거 좀 줘",
@@ -742,7 +771,7 @@ int main_game(GameState* state) {
                 }, 3
             },
             {
-                "txts/comi.txt", "txts/comi_fail.txt", "txts/comi_ok.txt",
+                "txts/comi.txt", "txts/comi_fail.txt", "txts/comi_ok.txt", "mp3s/voice_nomal/comi.mp3",
               
                 {
                     {"코미: 하암~ 잠을 너무 잤더니 머리아파.",
@@ -763,7 +792,7 @@ int main_game(GameState* state) {
             },
             // [추가 손님 1] 네르 (그림 파일은 임시로 elena 재활용, 대사 3개 추가)
             {
-                "txts/neru.txt", "txts/neru_fail.txt", "txts/neru_ok.txt",
+                "txts/neru.txt", "txts/neru_fail.txt", "txts/neru_ok.txt", "mp3s/voice_nomal/ner.mp3",
 
                 {
                     {"네르: 어제 해당국을 너무먹어서 그런지 속이 너무 더부룩 한거 같아요.",
@@ -785,7 +814,7 @@ int main_game(GameState* state) {
             },
             // [추가 손님 2] 아야 (그림 파일은 임시로 comi 재활용, 대사 3개 추가)
             {
-                "txts/aya.txt", "txts/aya_fail.txt", "txts/aya_ok.txt",
+                "txts/aya.txt", "txts/aya_fail.txt", "txts/aya_ok.txt", "mp3s/voice_nomal/aya.mp3",
 
                 {
                     {"아야: 어제 너무 격렬하게 움직여서 몸이 달아올랐어..",
@@ -807,7 +836,7 @@ int main_game(GameState* state) {
             },
             // [추가 손님 3] 림 (그림 파일은 임시로 elena 재활용, 대사 3개 추가)
             {
-                "txts/rim2.txt", "txts/rim_fail.txt", "txts/rim_ok.txt",
+                "txts/rim2.txt", "txts/rim_fail.txt", "txts/rim_ok.txt", "mp3s/voice_nomal/rim.mp3",
 
                 {
                     {"림: 재치있는 나는..엣취!..",
@@ -828,7 +857,7 @@ int main_game(GameState* state) {
             },
 
             {
-              "txts/spiki.txt", "txts/spiki_fail.txt", "txts/spiki_ok.txt",
+              "txts/spiki.txt", "txts/spiki_fail.txt", "txts/spiki_ok.txt", "mp3s/voice_nomal/speaki.mp3",
 
                 {
                     {"스핔이: 스핔이!", "회복포션", "스핔이: 쪼아요!", "스핔이: 흐에에엥"},
@@ -843,10 +872,22 @@ int main_game(GameState* state) {
         //char* badLines[3] = { "으윽, 몸이 더 이상해졌잖아!", "잘못 준 것 같은데...", "돌팔이 녀석!" };
 
 
+
+        char mci_command[512]; // 명령어 도화지
+
+        // ★ 헬레나님의 사전 적재(Pre-load) 시스템
+        // 장사 시작 전에 6명의 목소리를 미리 다 열어서 대기시킨다!
+        for (int i = 0; i < 6; i++) {
+            sprintf_s(mci_command, sizeof(mci_command), "open \"%s\" type mpegvideo alias voice_%d", characters[i].voice_file, i);
+            mciSendStringA(mci_command, NULL, 0, NULL);
+        }
+
+
         time_t start_time = time(NULL); // 영업 시작 시간 기록
         int time_limit = 120;           // 영업시간 제한: 180초 (3분)
 
         while (1) {
+
             printf("\033[?25h");
 
             int elapsed_time = (int)(time(NULL) - start_time);
@@ -918,11 +959,22 @@ int main_game(GameState* state) {
             int demandIndex = rand() % customer->num_demands;
             Demand currentDemand = customer->demands[demandIndex];
 
+           
+            
             // 아스키 아트 그리기 (왼쪽 화면)
             system("cls");
             draw_ascii_art(customer->chara, 5, 0);
             printf(COLOR_RESET);
-            Sleep(600);
+            
+
+
+
+            // ★ 헬레나님의 빛의 속도 재생! (open 없음, 딜레이 없음)
+            sprintf_s(mci_command, sizeof(mci_command), "play voice_%d from 0", customerIndex);
+            mciSendStringA(mci_command, NULL, 0, NULL);
+
+
+
 
             // -------------------------------------------------------------------------
             // [인게임 상호작용 UI 개편] 손님 입장 후 화려하게 바뀌는 라이브 화면
@@ -951,7 +1003,7 @@ int main_game(GameState* state) {
             // ==============================================================
             Move_Cursor(82, 22); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
             Move_Cursor(82, 23); printf("┃  [ 현재 가방 속 재고 ]");
-            Move_Cursor(82, 24);
+            Move_Cursor(82, 24); printf("◆");
             printf("┃  ");
             for (int i = 0; i < 7; i++) {
                 if (state->inventory[i] == 0) set_color(FONT_COLOR_RED);
@@ -960,6 +1012,7 @@ int main_game(GameState* state) {
             }
             printf(COLOR_RESET);
 
+            
             // ==============================================================
             // 처방전 작성 입력칸 (마찬가지로 Y좌표 +3)
             // ==============================================================
@@ -970,10 +1023,12 @@ int main_game(GameState* state) {
             Move_Cursor(82, 30); printf("◆━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━◆");
 
             // 입력 커서를 새로운 처방전 입력칸(28번째 줄)으로 이동
-            Move_Cursor(123, 28);
 
+            Move_Cursor(123, 28);
+                
+
+            Restore_IME();
             printf("\033[?25h");
-            Force_Korean_Mode();
             setbuf(stdin, NULL);
             FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
             scanf_s("%49s", medicine, (unsigned)_countof(medicine));
@@ -1004,7 +1059,9 @@ int main_game(GameState* state) {
                     int profit = stock[item_index].sell_price; // 구조체에 분리해둔 판매가 적용!
                     state->inventory[item_index] -= 1;         // 가방에서 약 1개 꺼내기
                     state->money += profit;                    // 지갑에 돈 넣기
+                    if (state->satisfaction < 100) {
                     state->satisfaction += 5;
+                    }
 
                     Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
                     set_color(BG_COLOR_YELLOW); set_color(FONT_COLOR_BLACK);
@@ -1018,13 +1075,18 @@ int main_game(GameState* state) {
 
                     Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
                     set_color(BG_COLOR_BrRED);
-                    printf(" ! 처방 실패... 재고가 부족합니다! (만족도 -5) ! "); printf(COLOR_RESET);
+                    printf(" ! 처방 실패... 재고가 부족합니다! (만족도 -10) ! "); printf(COLOR_RESET);
 
                     // ★ 맞춤형 실패 대사 출력!
                     Move_Cursor(82, 31);
                     printf(" > %s", currentDemand.precise_fail);
 
-                    state->satisfaction -= 5;
+                    if (state->satisfaction != 0) {
+                    state->satisfaction -= 10;
+                    }
+                    if (state->satisfaction == 5) {
+                        state->satisfaction -= 5;
+                    }
                 }
             }
             else {
@@ -1033,14 +1095,19 @@ int main_game(GameState* state) {
 
                 Move_Cursor(82, 29); printf(" 【 판정 결과 】 ");
                 set_color(BG_COLOR_BrRED);
-                printf(" ! 처방 실패... 잘못된 약입니다 (-3,000원 / 만족도 -5) ! "); printf(COLOR_RESET);
+                printf(" ! 처방 실패... 잘못된 약입니다 (- 1,500원 / 만족도 -10) ! "); printf(COLOR_RESET);
 
                 // ★ 맞춤형 실패 대사 출력!
                 Move_Cursor(82, 31);
                 printf(" > %s", currentDemand.precise_fail);
 
-                state->money -= 3000;
-                state->satisfaction -= 5;
+                state->money -= 1500;
+                if (state->satisfaction != 0) {
+                    state->satisfaction -= 10;
+                }
+                if (state->satisfaction == 5) {
+                    state->satisfaction -= 5;
+                }
             }
 
             // 콘솔 입력 버퍼 찌꺼기 청소
@@ -1064,8 +1131,9 @@ int main_game(GameState* state) {
         system("cls");
         Move_Cursor(40, 15);
         printf("오늘 영업을 마감합니다. 밤이 깊었으니 집으로 돌아갑시다.");
-        Force_English_Mode();
+     
         Sleep(2000);
+        mciSendString(TEXT("stop drug"), NULL, 0, NULL);
         state->opend = 1;
         return 9;
     }
@@ -1171,9 +1239,13 @@ int loading() {
     char line[1024];
 
     mciSendString(TEXT("open \"mp3s/nerujimaseyo.mp3\" type mpegvideo alias logo"), NULL, 0, NULL);
-    mciSendString(TEXT("open \"mp3s/voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
+    //mciSendString(TEXT("open \"mp3s/voice 7 voice.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/Room-bgm.mp3\" type mpegvideo alias Room-bgm"), NULL, 0, NULL);
     mciSendString(TEXT("open \"mp3s/Piano Sound Effect.mp3\" type mpegvideo alias piano"), NULL, 0, NULL);
+    mciSendString(TEXT("open \"mp3s/Tem shop.mp3\" type mpegvideo alias myBgm"), NULL, 0, NULL);
+
+    
+
 
     if (logo) {
         while (fgets(line, sizeof(line), logo) != NULL) {
@@ -1351,25 +1423,72 @@ int render_Title() {
 
 int endings(GameState* state) {
     
-    Force_English_Mode();
+
+    FILE* marster = fopen("txts/eunsuck.txt", "r");
+    char marster1 [1024];
+    FILE* drug = fopen("txts/drug_store.txt", "r");
+    char drug1 [1024];
+    FILE* miku = fopen("txts/miku.txt", "r");
+    char miku1 [1024];
+
     int money = state->money;
 
     //월세 실패
-    if (money < 300000) {
+    if (money < 120000) {
         system("cls");
+
+        if (marster) {
+            while (fgets(marster1, sizeof(marster1), marster) != NULL) {
+                printf("%s", marster1);
+            }
+            fclose(marster);
+        }
+
+        Move_Cursor(102, 3);
         printf("돈이 부족하구나 죽어버리렴");
+        Move_Cursor(18, 5);
+        printf("건물주 : 이 은 석");
+        Sleep(10000);
+        
+        return -1;
     }
 
 
-    if (money > 300000 || money < 330000) {
+    if (money > 120000 && money < 150000) {
         system("cls");
-        printf("아슬아슬하게 모았구나");
+        printf("약국의 월세를 냈다 약국을 이어가자");
+
+        Move_Cursor(102, 3);
+        if (drug) {
+            while (fgets(drug1, sizeof(drug1), drug) != NULL) {
+                printf("%s", drug1);
+            }
+            fclose(drug);
+        }
+
+        Sleep(10000);
+        return -1;
     }
 
 
-    if (money > 330001) {
+    if (money > 150000) {
         system("cls");
-        printf("훌륭해");
+
+
+        Move_Cursor(70, 33);
+        printf("최고의 약국이 되었다");
+        if (miku) {
+            while (fgets(miku1, sizeof(miku1), miku) != NULL) {
+                printf("%s", miku1);
+            }
+            fclose(miku);
+        }
+
+
+        
+        Sleep(10000);
+
+        return -1;
     }
 
 
